@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import './Home.css';
 
+import { Element } from 'react-scroll';
+import { Link } from '@material-ui/core';
+
 import InfoCard from './InfoCard/InfoCard';
 
 export default class Home extends Component {
@@ -14,16 +17,14 @@ export default class Home extends Component {
             {
                 name: "Hello, world!",
                 description: "I'm Kesav.",
-                transition: "Who??",
             },
             {
                 name: "Student",
                 description: "3rd year EECS major at UC Berkeley. Go Bears!",
-                transition: "What else??",
             },
             {
                 name: "Developer",
-                description: "Check out my Github!",
+                description: <span>Check out my <Link color="secondary" href="https://github.com/kesav-v">Github</Link>!</span>,
             }
         ]
     }
@@ -37,12 +38,20 @@ export default class Home extends Component {
     render() {
         return (
             <div className="home-container">
-                <InfoCard
-                    title="Hello, world!"
-                    description="I'm Kesav."
-                    transitionText="Who??"
-                    onNext={this.scrollToNextInfoCard}
-                />
+                {
+                    this.infoCards.map((info, i) => (
+                        <Element name={`info-card-${i}`}>
+                            <InfoCard
+                                title={info.name}
+                                description={info.description}
+                                transition={i !== this.infoCards.length - 1}
+                                onNext={this.scrollToNextInfoCard}
+                                name={`info-card-${i + 1}`}
+                            />
+                        </Element>
+                    ))
+                }
+
             </div>
         )
     }

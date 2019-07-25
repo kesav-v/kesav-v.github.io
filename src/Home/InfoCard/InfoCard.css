@@ -1,6 +1,5 @@
 .info-card-container {
     height: 100vh;
-    border-bottom: 2px solid white;
     background-color: black;
     color: white;
     display: flex;
@@ -11,7 +10,7 @@
 
 .info-card-title {
     font-weight: lighter;
-    font-size: 60px;
+    font-size: 72px;
     margin-bottom: 10px;
 }
 
@@ -25,4 +24,8 @@
 
 .learn-more {
     margin-right: 5px;
+}
+
+hr {
+    width: 30vw;
 }
