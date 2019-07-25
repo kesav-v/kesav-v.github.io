@@ -1,0 +1,28 @@
+.info-card-container {
+    height: 100vh;
+    border-bottom: 2px solid white;
+    background-color: black;
+    color: white;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+.info-card-title {
+    font-weight: lighter;
+    font-size: 60px;
+    margin-bottom: 10px;
+}
+
+.info-card-description {
+    font-size: 30px;
+}
+
+.info-card-learn-more-container {
+    margin-top: 20px;
+}
+
+.learn-more {
+    margin-right: 5px;
+}
