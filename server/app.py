@@ -21,7 +21,7 @@ def after_request(response):
     return response
 
 # Initialize the database
-init_db()
+init_db()  # Database initialized
 
 VISIBLE_RANGE_PADDING = 7
 
