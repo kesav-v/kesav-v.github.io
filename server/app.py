@@ -7,12 +7,9 @@ from db import init_db, save_game, load_game
 from typing import Union, Tuple, cast
 
 app = Flask(__name__)
-# Enable CORS - explicitly allow GitHub Pages origin
-CORS(app, origins=[
-    "https://kesav-v.github.io",
-    "http://localhost:3000",  # For local development
-    "http://localhost:8080",  # For local development
-], supports_credentials=True)
+# Enable CORS - allow all origins for public API
+# This allows requests from GitHub Pages and any other frontend
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Initialize the database
 init_db()
