@@ -250,13 +250,6 @@ const Chessboard: React.FC<ChessboardProps> = ({
     const minPieceCol = Math.min(...positions.map((p) => p.col));
     const maxPieceCol = Math.max(...positions.map((p) => p.col));
 
-    console.log("visible range", {
-      minRow: minPieceRow - VISIBLE_RANGE_PADDING,
-      maxRow: maxPieceRow + VISIBLE_RANGE_PADDING,
-      minCol: minPieceCol - VISIBLE_RANGE_PADDING,
-      maxCol: maxPieceCol + VISIBLE_RANGE_PADDING,
-    });
-
     return {
       minRow: minPieceRow - VISIBLE_RANGE_PADDING,
       maxRow: maxPieceRow + VISIBLE_RANGE_PADDING,
