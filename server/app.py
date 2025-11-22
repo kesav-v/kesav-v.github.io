@@ -9,7 +9,7 @@ from typing import Union, Tuple, cast
 app = Flask(__name__)
 # Enable CORS - allow all origins for public API
 # This allows requests from GitHub Pages and any other frontend
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, origins="*", allow_headers=["Content-Type"], methods=["GET", "POST", "OPTIONS"])
 
 # Initialize the database
 init_db()
