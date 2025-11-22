@@ -14,6 +14,7 @@ CORS(app, origins="*", allow_headers=["Content-Type"], methods=["GET", "POST", "
 # Add after_request handler to ensure CORS headers are always set
 @app.after_request
 def after_request(response):
+    # Force CORS headers on every response
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
