@@ -59,11 +59,7 @@ export const ChessSquare: React.FC<ChessSquareProps> = ({
       }}
       onClick={onClick}
     >
-      {piece ? (
-        <ChessPiece piece={piece} getPlayerColor={getPlayerColor} />
-      ) : (
-        `${row},${col}`
-      )}
+      {piece && <ChessPiece piece={piece} getPlayerColor={getPlayerColor} />}
     </div>
   );
 };
