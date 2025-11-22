@@ -138,7 +138,6 @@ export const useBoardState = () => {
   useEffect(() => {
     const initGame = async () => {
       try {
-        console.log("gameId", gameId);
         if (gameId) {
           // First check if the game exists and get initial board state
           const boardState = await gameApi.getBoardState(gameId);
