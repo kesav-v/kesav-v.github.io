@@ -1,3 +1,5 @@
+import { API_BASE_URL } from "../config";
+
 interface Position {
   row: number;
   col: number;
@@ -47,8 +49,6 @@ interface JoinGameResponse {
   spawnPosition?: Position;
   error?: string;
 }
-
-import { API_BASE_URL } from "../config";
 
 export const gameApi = {
   createNewGame: async (): Promise<string | null> => {

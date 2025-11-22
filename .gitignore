@@ -27,11 +27,3 @@ server/__pycache__
 server/chess_games.db
 server/*.db
 
-# Terraform
-terraform/.terraform/
-terraform/.terraform.lock.hcl
-terraform/terraform.tfstate
-terraform/terraform.tfstate
-terraform/terraform.tfstate.backup
-terraform/*.tfvars
-terraform/*.tfvars.json

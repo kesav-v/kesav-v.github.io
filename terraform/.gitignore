@@ -1,9 +1,0 @@
-# Terraform files
-.terraform/
-.terraform.lock.hcl
-*.tfstate
-*.tfstate.backup
-*.tfvars
-*.tfvars.json
-.terraform.lock.hcl
-
