@@ -1,0 +1,38 @@
+.promotion-dialog {
+  position: absolute;
+  background-color: white;
+  border: 2px solid black;
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+
+  &__option {
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: white;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #f0f0f0;
+    }
+
+    svg {
+      width: 30px;
+      height: 30px;
+
+      path {
+        fill: #4169E1;
+        stroke: #000000;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    }
+  }
+} 

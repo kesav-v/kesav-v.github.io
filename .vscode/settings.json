@@ -1,0 +1,10 @@
+{
+    "python.linting.mypyEnabled": true,
+    "python.linting.enabled": true,
+    "mypy.configFile": "mypy.ini",
+    "mypy.runUsingActiveInterpreter": true,
+    "mypy.targets": [
+        "server"
+    ],
+    "python.analysis.typeCheckingMode": "basic"
+} 

@@ -1,15 +1,20 @@
 import React from "react";
-import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
 import "./App.css";
 import Home from "./components/Home";
 import Engineering from "./components/Engineering";
 import Chess from "./components/Chess";
 import Music from "./components/Music";
+import Games from "./components/Games";
+import InfiniteChess from "./components/games/InfiniteChess";
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+  const isChessboardActive = location.pathname.includes("/games/infinite-chess");
+
   return (
-    <Router>
-      <div className="App">
+    <div className={`App ${isChessboardActive ? "chessboard-active" : ""}`}>
+      {!isChessboardActive && (
         <nav className="nav-bar">
           <Link to="/" className="nav-link">
             Home
@@ -23,16 +28,33 @@ function App() {
           <Link to="/music" className="nav-link">
             Music
           </Link>
+          <Link to="/games" className="nav-link">
+            Games
+          </Link>
         </nav>
-        <main className="main-content">
+      )}
+      <main className={isChessboardActive ? "main-content fullscreen" : "main-content"}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/engineering" element={<Engineering />} />
             <Route path="/chess" element={<Chess />} />
             <Route path="/music" element={<Music />} />
+            <Route path="/games" element={<Games />} />
+            <Route path="/games/infinite-chess" element={<InfiniteChess />} />
+            <Route
+              path="/games/infinite-chess/:gameId"
+              element={<InfiniteChess />}
+            />
           </Routes>
         </main>
       </div>
+    );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

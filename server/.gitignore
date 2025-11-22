@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+server_env/
+venv/
+env/
+ENV/
+chess_games.db
+*.db
+.DS_Store
+
