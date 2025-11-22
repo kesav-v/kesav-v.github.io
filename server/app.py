@@ -11,6 +11,14 @@ app = Flask(__name__)
 # This allows requests from GitHub Pages and any other frontend
 CORS(app, origins="*", allow_headers=["Content-Type"], methods=["GET", "POST", "OPTIONS"])
 
+# Add after_request handler to ensure CORS headers are always set
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    return response
+
 # Initialize the database
 init_db()
 
