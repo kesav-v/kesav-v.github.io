@@ -1,6 +1,7 @@
 .App {
   text-align: center;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -316,8 +317,8 @@ p {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 240px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .rank-leaderboard-row {
@@ -485,7 +486,7 @@ p {
   font-size: 0.95rem;
   line-height: 1.45;
   color: #d4d8de;
-  overflow-y: auto;
+  overflow: hidden;
   max-height: 160px;
 }
 
@@ -573,6 +574,8 @@ p {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 5;
+    /* Don't trap touch scrolling inside article previews on Android. */
+    touch-action: auto;
   }
 
   .rank-pick-btn {

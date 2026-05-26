@@ -6,8 +6,6 @@ html {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
 }
 
 body {
@@ -15,16 +13,19 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  overflow-x: hidden;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow-x: clip;
   background-color: #2f2f2f;
 }
 
+/* Lock scroll only for fullscreen chess. */
 html.scroll-locked,
 body.scroll-locked {
   height: 100%;
+  width: 100%;
   overflow: hidden;
+  position: fixed;
+  inset: 0;
 }
 
 body {
