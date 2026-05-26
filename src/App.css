@@ -242,6 +242,7 @@ p {
 
 .rank-page {
   max-width: 960px;
+  padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .rank-header {
@@ -479,14 +480,27 @@ p {
   text-decoration: underline;
 }
 
-.rank-extract {
-  flex: 1;
+.rank-extract-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 220px;
   margin: 0 0 0.75rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  border-radius: 4px;
+  background-color: #14181e;
+  box-shadow: inset 0 0 0 1px #2a3038;
+}
+
+.rank-extract {
+  margin: 0;
+  padding: 0.5rem 0.6rem;
   font-size: 0.95rem;
   line-height: 1.45;
   color: #d4d8de;
-  overflow: hidden;
-  max-height: 160px;
 }
 
 .rank-pick-btn {
@@ -524,7 +538,11 @@ p {
   }
 
   .rank-page {
-    padding: 0.5rem 0.25rem 1.5rem;
+    padding: 0.5rem 0.25rem calc(3rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .rank-extract-wrap {
+    max-height: 130px;
   }
 
   .rank-header {
@@ -567,14 +585,7 @@ p {
   .rank-extract {
     font-size: 0.75rem;
     line-height: 1.35;
-    margin-bottom: 0.5rem;
-    max-height: none;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 5;
-    /* Don't trap touch scrolling inside article previews on Android. */
-    touch-action: auto;
+    padding: 0.4rem 0.45rem;
   }
 
   .rank-pick-btn {
@@ -591,7 +602,8 @@ p {
 
   .rank-explanation-label {
     font-size: 0.85rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
   }
 
   .rank-explanation-input {
@@ -613,8 +625,8 @@ p {
 }
 
 @media (max-width: 380px) {
-  .rank-extract {
-    -webkit-line-clamp: 4;
+  .rank-extract-wrap {
+    max-height: 110px;
   }
 
   .rank-pick-btn {

@@ -82,7 +82,9 @@ const RankEverything: React.FC = () => {
             {article.title}
           </a>
         </h3>
-        <p className="rank-extract">{article.extract}</p>
+        <div className="rank-extract-wrap" tabIndex={0} aria-label="Article preview">
+          <p className="rank-extract">{article.extract}</p>
+        </div>
         <button
           type="button"
           className="rank-pick-btn"
