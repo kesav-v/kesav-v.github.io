@@ -11,20 +11,14 @@ import RankEverything from "./components/games/RankEverything";
 
 function AppContent() {
   const location = useLocation();
-  const isChessboardActive = location.pathname.includes("/games/infinite-chess");
+  const isChessboardActive = /^\/games\/infinite-chess(\/|$)/.test(
+    location.pathname
+  );
 
   useEffect(() => {
-    const { documentElement: html, body } = document;
-    if (isChessboardActive) {
-      html.classList.add("scroll-locked");
-      body.classList.add("scroll-locked");
-    } else {
-      html.classList.remove("scroll-locked");
-      body.classList.remove("scroll-locked");
-    }
+    document.body.classList.toggle("scroll-locked", isChessboardActive);
     return () => {
-      html.classList.remove("scroll-locked");
-      body.classList.remove("scroll-locked");
+      document.body.classList.remove("scroll-locked");
     };
   }, [isChessboardActive]);
 

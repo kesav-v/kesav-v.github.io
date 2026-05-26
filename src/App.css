@@ -423,7 +423,6 @@ p {
 
 .rank-versus--busy {
   opacity: 0.6;
-  pointer-events: none;
 }
 
 .rank-vs {
