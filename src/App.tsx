@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { HashRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
 import "./App.css";
 import Home from "./components/Home";
@@ -12,6 +12,21 @@ import RankEverything from "./components/games/RankEverything";
 function AppContent() {
   const location = useLocation();
   const isChessboardActive = location.pathname.includes("/games/infinite-chess");
+
+  useEffect(() => {
+    const { documentElement: html, body } = document;
+    if (isChessboardActive) {
+      html.classList.add("scroll-locked");
+      body.classList.add("scroll-locked");
+    } else {
+      html.classList.remove("scroll-locked");
+      body.classList.remove("scroll-locked");
+    }
+    return () => {
+      html.classList.remove("scroll-locked");
+      body.classList.remove("scroll-locked");
+    };
+  }, [isChessboardActive]);
 
   return (
     <div className={`App ${isChessboardActive ? "chessboard-active" : ""}`}>
