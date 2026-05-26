@@ -10,7 +10,6 @@ interface GameResponse {
   gameId: string;
 }
 
-
 interface Piece {
   type: "pawn" | "rook" | "knight" | "bishop" | "queen" | "king";
   position: Position;
@@ -50,10 +49,26 @@ interface JoinGameResponse {
   error?: string;
 }
 
+interface PublicGame {
+  gameId: string;
+  visibility: string;
+}
+
+interface ListPublicGamesResponse {
+  success: boolean;
+  games: PublicGame[];
+}
+
 export const gameApi = {
-  createNewGame: async (): Promise<string | null> => {
+  createNewGame: async (
+    visibility: "public" | "unlisted" = "unlisted"
+  ): Promise<string | null> => {
     const response = await fetch(`${API_BASE_URL}/start_new_game`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ visibility }),
     });
 
     if (!response.ok) {
@@ -175,9 +190,7 @@ export const gameApi = {
     }
   },
 
-  joinGame: async (
-    gameId: string
-  ): Promise<JoinGameResponse | null> => {
+  joinGame: async (gameId: string): Promise<JoinGameResponse | null> => {
     try {
       const response = await fetch(`${API_BASE_URL}/join_game`, {
         method: "POST",
@@ -201,6 +214,26 @@ export const gameApi = {
     }
   },
 
+  listPublicGames: async (): Promise<PublicGame[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/list_public_games`, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to list public games");
+      }
+
+      const result: ListPublicGamesResponse = await response.json();
+      if (result.success) {
+        return result.games;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error listing public games:", error);
+      return [];
+    }
+  },
 };
 
-export type { Position, Piece, LegalMove, MakeMoveResponse };
+export type { Position, Piece, LegalMove, MakeMoveResponse, PublicGame };

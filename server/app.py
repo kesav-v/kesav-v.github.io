@@ -3,7 +3,7 @@ from flask_cors import CORS
 from board import Board, Position, Piece
 import uuid
 import os
-from db import init_db, save_game, load_game
+from db import init_db, save_game, load_game, get_public_games
 from typing import Union, Tuple, cast
 
 app = Flask(__name__)
@@ -23,19 +23,27 @@ def after_request(response):
 # Initialize the database
 init_db()  # Database initialized
 
-VISIBLE_RANGE_PADDING = 7
-
 
 @app.route("/start_new_game", methods=["POST"])
 def start_new_game() -> Response:
+    data = request.get_json() or {}
+    visibility = data.get("visibility", "unlisted")
+    
+    # Validate visibility
+    if visibility not in ["public", "unlisted"]:
+        return (
+            cast(Response, jsonify({"success": False, "error": "Invalid visibility. Must be 'public' or 'unlisted'"})),
+            400,
+        )
+    
     game_id = str(uuid.uuid4())
     board = Board()
 
     # Spawn the first player using the spawn_player method
-    player_id, spawn_position = board.spawn_player(visible_range_padding=VISIBLE_RANGE_PADDING)
+    player_id, spawn_position = board.spawn_player()
 
-    # Save the new game to the database
-    save_game(game_id, board)
+    # Save the new game to the database with visibility
+    save_game(game_id, board, visibility)
 
     return cast(Response, jsonify({"success": True, "gameId": game_id}))
 
@@ -59,9 +67,7 @@ def join_game() -> Union[Response, Tuple[Response, int]]:
         )
 
     # Spawn the new player using the Board class method
-    player_id, spawn_position = board.spawn_player(
-        visible_range_padding=VISIBLE_RANGE_PADDING
-    )
+    player_id, spawn_position = board.spawn_player()
 
     # Save the updated game state
     save_game(game_id, board)
@@ -175,10 +181,47 @@ def get_board_state() -> Union[Response, Tuple[Response, int]]:
             }
         )
 
+    # Convert pawn_directions to the format expected by frontend
+    # Ensure all players have pawn_directions set (fallback for old games)
+    pawn_directions = {}
+    
+    # Get all unique player IDs from pieces
+    all_player_ids = set()
+    for piece in board.pieces.values():
+        all_player_ids.add(piece.player_id)
+    
+    # Recalculate directions based on player number (spiral pattern)
+    for player_id in all_player_ids:
+        try:
+            player_num = int(player_id.replace("player", ""))
+        except ValueError:
+            player_num = 1
+        
+        if player_num == 1:
+            direction = (-1, 0)  # Upward
+        else:
+            ring = (player_num - 2) // 4
+            side = (player_num - 2) % 4
+            if side == 0:  # Right side -> Leftward
+                direction = (0, -1)
+            elif side == 1:  # Top side -> Downward
+                direction = (1, 0)
+            elif side == 2:  # Left side -> Rightward
+                direction = (0, 1)
+            else:  # Bottom side -> Upward
+                direction = (-1, 0)
+        
+        # Update the board's pawn_directions if it's different
+        if player_id not in board.pawn_directions or board.pawn_directions[player_id] != direction:
+            board.pawn_directions[player_id] = direction
+            save_game(game_id, board)  # Save the updated board with directions
+        
+        pawn_directions[player_id] = {"row": direction[0], "col": direction[1]}
+
     return cast(
         Response,
         jsonify(
-            {"success": True, "pieces": pieces}
+            {"success": True, "pieces": pieces, "pawn_directions": pawn_directions}
         ),
     )
 
@@ -206,6 +249,14 @@ def get_cooldown() -> Union[Response, Tuple[Response, int]]:
         Response,
         jsonify({"success": True, "cooldown_remaining": round(cooldown_remaining, 2)}),
     )
+
+
+@app.route("/list_public_games", methods=["GET"])
+def list_public_games() -> Response:
+    """List all public games."""
+    public_games = get_public_games()
+    games_list = [{"gameId": game_id, "visibility": visibility} for game_id, visibility in public_games]
+    return cast(Response, jsonify({"success": True, "games": games_list}))
 
 
 if __name__ == "__main__":

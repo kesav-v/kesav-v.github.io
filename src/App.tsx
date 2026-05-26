@@ -6,6 +6,7 @@ import Engineering from "./components/Engineering";
 import Chess from "./components/Chess";
 import Music from "./components/Music";
 import Games from "./components/Games";
+import Wikipedia from "./components/Wikipedia";
 import InfiniteChess from "./components/games/InfiniteChess";
 
 function AppContent() {
@@ -31,6 +32,9 @@ function AppContent() {
           <Link to="/games" className="nav-link">
             Games
           </Link>
+          <Link to="/wikipedia" className="nav-link">
+            Wikipedia
+          </Link>
         </nav>
       )}
       <main className={isChessboardActive ? "main-content fullscreen" : "main-content"}>
@@ -40,6 +44,7 @@ function AppContent() {
             <Route path="/chess" element={<Chess />} />
             <Route path="/music" element={<Music />} />
             <Route path="/games" element={<Games />} />
+            <Route path="/wikipedia" element={<Wikipedia />} />
             <Route path="/games/infinite-chess" element={<InfiniteChess />} />
             <Route
               path="/games/infinite-chess/:gameId"

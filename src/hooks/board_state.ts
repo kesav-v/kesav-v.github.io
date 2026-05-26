@@ -38,27 +38,13 @@ export const useBoardState = () => {
   const { gameId: urlGameId } = useParams<{ gameId: string }>();
 
   useEffect(() => {
-    const initGame = async () => {
-      if (!urlGameId) {
-        try {
-          const newGameId = await gameApi.createNewGame();
-          if (newGameId) {
-            navigate(`/games/infinite-chess/${newGameId}`, { replace: true });
-          }
-        } catch (error) {
-          console.error("Error creating new game:", error);
-          setUiState((prev) => ({
-            ...prev,
-            error: "Failed to create new game. Please try again.",
-          }));
-          setGameId(null);
-        }
-      } else {
-        setGameId(urlGameId);
-      }
-    };
-    initGame();
-  }, [urlGameId, navigate]);
+    if (urlGameId) {
+      setGameId(urlGameId);
+    } else {
+      setGameId(null);
+      setUiState((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [urlGameId]);
 
   // Game State
   const [gameState, setGameState] = useState<GameState>({
@@ -84,6 +70,84 @@ export const useBoardState = () => {
   // Game Actions
   const handleNewGame = async () => {
     navigate("/games/infinite-chess", { replace: true });
+  };
+
+  const handleCreateGameWithVisibility = async (visibility: "public" | "unlisted") => {
+    try {
+      setUiState((prev) => ({ ...prev, isLoading: true, error: null }));
+      const newGameId = await gameApi.createNewGame(visibility);
+      if (newGameId) {
+        // Mark that we created this game and are player1
+        const sessionKey = `joined_game_${newGameId}`;
+        sessionStorage.setItem(sessionKey, "player1");
+        navigate(`/games/infinite-chess/${newGameId}`, { replace: true });
+      } else {
+        setUiState((prev) => ({
+          ...prev,
+          error: "Failed to create new game. Please try again.",
+          isLoading: false,
+        }));
+      }
+    } catch (error) {
+      console.error("Error creating new game:", error);
+      setUiState((prev) => ({
+        ...prev,
+        error: "Failed to create new game. Please try again.",
+        isLoading: false,
+      }));
+    }
+  };
+
+  const handleJoinGameById = async (gameIdToJoin: string) => {
+    try {
+      setUiState((prev) => ({ ...prev, isLoading: true, error: null }));
+      // First navigate to the game
+      navigate(`/games/infinite-chess/${gameIdToJoin}`, { replace: true });
+      // Then join the game
+      const result = await gameApi.joinGame(gameIdToJoin);
+      if (result?.success && result.playerId) {
+        // Refresh the board state to include the new player
+        const boardState = await gameApi.getBoardState(gameIdToJoin);
+        if (boardState) {
+          const playerIds = Array.from(
+            new Set(boardState.pieces.map((piece) => piece.player_id))
+          );
+          const players = playerIds.map((playerId) => {
+            const playerPieces = boardState.pieces.filter(
+              (piece) => piece.player_id === playerId
+            );
+            const spawnRow = Math.max(
+              ...playerPieces.map((piece) => piece.position.row)
+            );
+            const spawnCol =
+              playerPieces.find((piece) => piece.position.row === spawnRow)
+                ?.position.col || 0;
+            return {
+              id: playerId,
+              spawnPosition: { row: spawnRow, col: spawnCol },
+            };
+          });
+          setGameState((prev) => ({
+            ...prev,
+            players,
+            activePlayerId: result.playerId!,
+          }));
+        }
+      } else {
+        setUiState((prev) => ({
+          ...prev,
+          error: result?.error || "Failed to join game",
+          isLoading: false,
+        }));
+      }
+    } catch (error) {
+      console.error("Error joining game:", error);
+      setUiState((prev) => ({
+        ...prev,
+        error: "Failed to join game",
+        isLoading: false,
+      }));
+    }
   };
 
   const handleJoinGame = async () => {
@@ -139,6 +203,10 @@ export const useBoardState = () => {
     const initGame = async () => {
       try {
         if (gameId) {
+          // Check if we've already joined this game in this session
+          const sessionKey = `joined_game_${gameId}`;
+          const hasJoined = sessionStorage.getItem(sessionKey);
+          
           // First check if the game exists and get initial board state
           const boardState = await gameApi.getBoardState(gameId);
 
@@ -148,49 +216,86 @@ export const useBoardState = () => {
               new Set(boardState.pieces.map((piece) => piece.player_id))
             );
 
-            // Create player objects with their spawn positions
-            // For existing players, we'll use their furthest back piece as spawn position
-            const players = playerIds.map((playerId) => {
-              const playerPieces = boardState.pieces.filter(
-                (piece) => piece.player_id === playerId
-              );
-              const spawnRow = Math.max(
-                ...playerPieces.map((piece) => piece.position.row)
-              );
-              const spawnCol =
-                playerPieces.find((piece) => piece.position.row === spawnRow)
-                  ?.position.col || 0;
-
-              return {
-                id: playerId,
-                spawnPosition: { row: spawnRow, col: spawnCol },
-              };
-            });
-
-            setGameState((prev) => ({
-              ...prev,
-              players,
-              // Set active player to first player if not already set
-              activePlayerId: prev.activePlayerId || players[0]?.id || "player1",
-            }));
+            // If we haven't joined yet, automatically join the game
+            if (!hasJoined) {
+              // Always join as a new player when visiting a game link
+              // (Game creator is already marked in sessionStorage when creating)
+              try {
+                const joinResult = await gameApi.joinGame(gameId);
+                if (joinResult?.success && joinResult.playerId) {
+                  const newPlayerId = joinResult.playerId; // Extract to ensure it's defined
+                  // Mark that we've joined in this session
+                  sessionStorage.setItem(sessionKey, newPlayerId);
+                  
+                  // Refresh board state to get updated player list
+                  const updatedBoardState = await gameApi.getBoardState(gameId);
+                  if (updatedBoardState) {
+                    const updatedPlayerIds = Array.from(
+                      new Set(updatedBoardState.pieces.map((piece) => piece.player_id))
+                    );
+                    const players = updatedPlayerIds.map((playerId) => {
+                      const playerPieces = updatedBoardState.pieces.filter(
+                        (piece) => piece.player_id === playerId
+                      );
+                      const spawnRow = Math.max(
+                        ...playerPieces.map((piece) => piece.position.row)
+                      );
+                      const spawnCol =
+                        playerPieces.find((piece) => piece.position.row === spawnRow)
+                          ?.position.col || 0;
+                      return {
+                        id: playerId,
+                        spawnPosition: { row: spawnRow, col: spawnCol },
+                      };
+                    });
+                    setGameState((prev) => ({
+                      ...prev,
+                      players,
+                      activePlayerId: newPlayerId,
+                    }));
+                    setUiState((prev) => ({ ...prev, isLoading: false }));
+                    return;
+                  }
+                }
+              } catch (joinError) {
+                console.error("Error auto-joining game:", joinError);
+                // Continue to show existing game state even if join fails
+              }
+            } else {
+              // We've already joined - use stored player ID or find it in the game
+              const storedPlayerId = sessionStorage.getItem(sessionKey);
+              const activeId = storedPlayerId && playerIds.includes(storedPlayerId) 
+                ? storedPlayerId 
+                : (playerIds[0] || "player1");
+              
+              const players = playerIds.map((playerId) => {
+                const playerPieces = boardState.pieces.filter(
+                  (piece) => piece.player_id === playerId
+                );
+                const spawnRow = Math.max(
+                  ...playerPieces.map((piece) => piece.position.row)
+                );
+                const spawnCol =
+                  playerPieces.find((piece) => piece.position.row === spawnRow)
+                    ?.position.col || 0;
+                return {
+                  id: playerId,
+                  spawnPosition: { row: spawnRow, col: spawnCol },
+                };
+              });
+              
+              setGameState((prev) => ({
+                ...prev,
+                players,
+                activePlayerId: prev.activePlayerId || activeId,
+              }));
+            }
           } else {
             setUiState((prev) => ({ ...prev, error: "Game not found" }));
           }
         } else {
-          try {
-            const newGameId = await gameApi.createNewGame();
-            if (newGameId) {
-              navigate(`/games/infinite-chess/${newGameId}`, {
-                replace: true,
-              });
-            }
-          } catch (error) {
-            console.error("Error creating new game:", error);
-            setUiState((prev) => ({
-              ...prev,
-              error: "Failed to create new game",
-            }));
-          }
+          // No game ID - user needs to create or join a game
+          setUiState((prev) => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
         console.error("Error initializing game:", error);
@@ -217,6 +322,8 @@ export const useBoardState = () => {
     getPlayerColor,
     handleNewGame,
     handleJoinGame,
+    handleCreateGameWithVisibility,
+    handleJoinGameById,
     setActivePlayerId,
     gameId: urlGameId,
   };

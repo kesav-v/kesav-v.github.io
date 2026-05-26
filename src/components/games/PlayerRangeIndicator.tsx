@@ -1,6 +1,5 @@
 import React from "react";
 import { Position } from "../../api/game";
-import { VISIBLE_RANGE_PADDING } from "./chess-constants";
 import "./PlayerRangeIndicator.scss";
 
 interface PlayerRangeIndicatorProps {
@@ -27,10 +26,10 @@ export const PlayerRangeIndicator: React.FC<PlayerRangeIndicatorProps> = ({
     <div
       className="player-range-indicator"
       style={{
-        left: (minCol - VISIBLE_RANGE_PADDING) * squareSize,
-        top: (minRow - VISIBLE_RANGE_PADDING) * squareSize,
-        width: (maxCol - minCol + 1 + 2 * VISIBLE_RANGE_PADDING) * squareSize,
-        height: (maxRow - minRow + 1 + 2 * VISIBLE_RANGE_PADDING) * squareSize,
+        left: minCol * squareSize,
+        top: minRow * squareSize,
+        width: (maxCol - minCol + 1) * squareSize,
+        height: (maxRow - minRow + 1) * squareSize,
         border: `2px dashed ${getPlayerColor(playerId)}`,
       }}
     />

@@ -14,15 +14,6 @@ class Position:
 
 
 @dataclass
-class VisibleRange:
-    min_row: int
-    max_row: int
-    min_col: int
-    max_col: int
-    player_id: str
-
-
-@dataclass
 class Piece:
     type: str  # "pawn", "rook", "knight", "bishop", "queen", "king"
     player_id: str
@@ -35,12 +26,18 @@ class Board:
         self.players: Dict[str, List[Position]] = (
             {}
         )  # player_id -> list of piece positions
-        self.last_move_times: Dict[str, float] = {}  # player_id -> timestamp of last move
+        self.last_move_times: Dict[str, float] = (
+            {}
+        )  # player_id -> timestamp of last move
         self.pawn_directions: Dict[str, Tuple[int, int]] = {
             "player1": (-1, 0)
         }  # (row_direction, col_direction) for pawn movement: (-1,0)=up, (1,0)=down, (0,-1)=left, (0,1)=right
-        self.pawn_starting_rows: Dict[str, List[int]] = {}  # player_id -> list of starting rows for pawns
-        self.pawn_starting_cols: Dict[str, List[int]] = {}  # player_id -> list of starting cols for pawns (for horizontal orientations)
+        self.pawn_starting_rows: Dict[str, List[int]] = (
+            {}
+        )  # player_id -> list of starting rows for pawns
+        self.pawn_starting_cols: Dict[str, List[int]] = (
+            {}
+        )  # player_id -> list of starting cols for pawns (for horizontal orientations)
         self.cooldown_seconds: float = 3.0  # Cooldown between moves
 
     def add_piece(self, piece: Piece) -> None:
@@ -106,13 +103,10 @@ class Board:
                     "cooldown_remaining": round(cooldown_remaining, 2),
                 }
 
-        # Remove any piece at the destination (capture)
-        self.remove_piece(to_pos)
-        # Update piece position
-        self.pieces.pop(from_pos)
-
-        # Handle pawn promotion
+        # Check if pawn promotion is needed BEFORE moving the piece
         promotion_available = False
+        row_dir = 0
+        col_dir = 0
         if piece.type == "pawn":
             # Get pawn direction and calculate target promotion rank
             direction = self.pawn_directions.get(piece.player_id, (-1, 0))
@@ -120,7 +114,7 @@ class Board:
             # Get starting positions for this player's pawns
             starting_rows = self.pawn_starting_rows.get(piece.player_id, [])
             starting_cols = self.pawn_starting_cols.get(piece.player_id, [])
-            
+
             if row_dir != 0 and starting_rows:
                 # Vertical movement - use the front starting row (furthest in forward direction)
                 # If moving down (1), front row is the maximum row
@@ -129,7 +123,7 @@ class Board:
                     front_starting_row = max(starting_rows)
                 else:  # Moving up
                     front_starting_row = min(starting_rows)
-                
+
                 # Calculate promotion rank - 6 squares ahead of front starting row
                 promotion_rank = front_starting_row + (row_dir * 6)
                 promotion_available = to_pos.row == promotion_rank
@@ -141,21 +135,32 @@ class Board:
                     front_starting_col = max(starting_cols)
                 else:  # Moving left
                     front_starting_col = min(starting_cols)
-                
+
                 # Calculate promotion rank - 6 squares ahead of front starting col
                 promotion_rank = front_starting_col + (col_dir * 6)
                 promotion_available = to_pos.col == promotion_rank
+
+        # If promotion is needed but no valid piece was provided, return early
+        if promotion_available:
+            valid_promotion_pieces = ["queen", "rook", "bishop", "knight"]
+            if promotion_piece not in valid_promotion_pieces:
+                return {
+                    "success": False,
+                    "promotion_available": True,
+                    "error": "Promotion piece required",
+                }
+
+        # Remove any piece at the destination (capture)
+        self.remove_piece(to_pos)
+        # Update piece position
+        self.pieces.pop(from_pos)
 
         spawned_pawn = False
         spawn_position = None
 
         if promotion_available:
-            # Only allow valid promotion pieces
-            valid_promotion_pieces = ["queen", "rook", "bishop", "knight"]
-            if promotion_piece in valid_promotion_pieces:
-                piece.type = promotion_piece
-            else:
-                piece.type = "queen"  # Default to queen if no valid choice provided
+            # Set the promotion piece (we already validated it exists above)
+            piece.type = promotion_piece
 
             # If this was a pawn promotion and the original square is empty,
             # spawn a new pawn there using the back starting row
@@ -164,11 +169,11 @@ class Board:
                 # Use the back starting row (furthest behind in forward direction)
                 # If moving down (1), back row is the minimum row
                 # If moving up (-1), back row is the maximum row
-                if pawn_direction == 1:  # Moving down
+                if row_dir == 1:  # Moving down
                     back_starting_row = min(starting_rows)
                 else:  # Moving up
                     back_starting_row = max(starting_rows)
-                
+
                 spawn_pos = Position(back_starting_row, from_pos.col)
                 if self.get_piece(spawn_pos) is None:
                     new_pawn = Piece("pawn", piece.player_id, spawn_pos)
@@ -343,14 +348,14 @@ class Board:
             starting_rows = self.pawn_starting_rows.get(piece.player_id, [])
             starting_cols = self.pawn_starting_cols.get(piece.player_id, [])
             is_on_starting_pos = (
-                (row_dir != 0 and piece.position.row in starting_rows) or
-                (col_dir != 0 and piece.position.col in starting_cols)
-            )
+                row_dir != 0 and piece.position.row in starting_rows
+            ) or (col_dir != 0 and piece.position.col in starting_cols)
 
             # Initial two-square move (only from starting positions)
             if is_on_starting_pos:
                 two_forward = Position(
-                    piece.position.row + (row_dir * 2), piece.position.col + (col_dir * 2)
+                    piece.position.row + (row_dir * 2),
+                    piece.position.col + (col_dir * 2),
                 )
                 if self.get_piece(two_forward) is None:  # Only if square is empty
                     moves.append(two_forward)
@@ -364,7 +369,10 @@ class Board:
                     piece.position.row + row_dir, piece.position.col + col_offset
                 )
                 target_piece = self.get_piece(capture_pos)
-                if target_piece is not None and target_piece.player_id != piece.player_id:
+                if (
+                    target_piece is not None
+                    and target_piece.player_id != piece.player_id
+                ):
                     moves.append(capture_pos)
         else:  # Moving horizontally (left or right)
             for row_offset in [-1, 1]:  # Up and down diagonals
@@ -372,7 +380,10 @@ class Board:
                     piece.position.row + row_offset, piece.position.col + col_dir
                 )
                 target_piece = self.get_piece(capture_pos)
-                if target_piece is not None and target_piece.player_id != piece.player_id:
+                if (
+                    target_piece is not None
+                    and target_piece.player_id != piece.player_id
+                ):
                     moves.append(capture_pos)
 
         return moves
@@ -407,17 +418,13 @@ class Board:
 
         return moves_dict
 
-    def spawn_player(self, visible_range_padding: int = 7) -> Tuple[str, Position]:
+    def spawn_player(self) -> Tuple[str, Position]:
         """
-        Spawns a new player on the board in a spiral pattern.
+        Spawns a new player on the board.
         Player 1: upward orientation at (0, 0)
-        Player 2: leftward orientation, one chessboard (8 squares) to the right
-        Player 3: downward orientation, one chessboard above player 2
-        Player 4: rightward orientation, one chessboard to the left of player 3
-        And so on in a spiral pattern.
-
-        Args:
-            visible_range_padding: Number of squares padding around each player's pieces
+        Each subsequent player's left-side rook spawns 4 ranks up and 4 files to the right
+        of the previous player's right-side rook.
+        Players alternate directions in a spiral pattern.
 
         Returns:
             Tuple of (player_id, spawn_position)
@@ -426,42 +433,115 @@ class Board:
         player_id = f"player{len(self.players) + 1}"
         player_num = len(self.players) + 1
 
-        # Calculate spiral position
-        # Spiral pattern: right, up, left, down, right, up, left, down...
-        # Each step is 8 squares (one chessboard width)
+        # Calculate direction based on player number (spiral pattern)
         if player_num == 1:
             base_row, base_col = 0, 0
             direction = (-1, 0)  # Upward
         else:
-            # Calculate which "ring" we're in and position within that ring
-            ring = (player_num - 2) // 4  # Which spiral ring (0-indexed)
-            side = (player_num - 2) % 4  # Which side of the ring (0=right, 1=up, 2=left, 3=down)
-            
-            # Starting position for this ring
-            if ring == 0:
-                start_row, start_col = 0, 8
+            # Find the previous player's right-side rook position
+            last_player_id = f"player{player_num - 1}"
+            last_player_pieces = [
+                pos
+                for pos, piece in self.pieces.items()
+                if piece.player_id == last_player_id
+            ]
+
+            if last_player_pieces:
+                # Find the previous player's right-side rook
+                last_player_rooks = [
+                    pos
+                    for pos, piece in self.pieces.items()
+                    if piece.player_id == last_player_id and piece.type == "rook"
+                ]
+
+                if last_player_rooks:
+                    # Get the previous player's direction to determine which rook is "right"
+                    last_direction = self.pawn_directions.get(last_player_id, (-1, 0))
+                    row_dir, col_dir = last_direction
+
+                    if row_dir != 0:  # Vertical orientation (up or down)
+                        # Right rook is the one with max col (furthest right)
+                        right_rook_pos = max(last_player_rooks, key=lambda p: p.col)
+                    else:  # Horizontal orientation (left or right)
+                        # Right rook is the one with max row (furthest down/right from player's perspective)
+                        right_rook_pos = max(last_player_rooks, key=lambda p: p.row)
+
+                    # Calculate where the new player's left-side rook should be
+                    # 11 rows up from previous right rook
+                    # Column offset depends on the new player's direction relative to previous player
+                    target_left_rook_row = right_rook_pos.row - 11
+
+                    # Calculate direction for new player first (needed to determine column offset)
+                    ring = (player_num - 2) // 4
+                    side = (player_num - 2) % 4
+                    if side == 0:  # Right side -> Leftward
+                        new_direction = (0, -1)
+                    elif side == 1:  # Top side -> Downward
+                        new_direction = (1, 0)
+                    elif side == 2:  # Left side -> Rightward
+                        new_direction = (0, 1)
+                    else:  # Bottom side -> Upward
+                        new_direction = (-1, 0)
+
+                    # Column offset:
+                    # - If new player is horizontal (left/right), go left (negative)
+                    # - If new player is vertical (up/down), check previous player:
+                    #   - If previous was horizontal, go left
+                    #   - If previous was vertical, go right
+                    new_row_dir, new_col_dir = new_direction
+                    if new_row_dir != 0:  # New player is vertical (up or down)
+                        if row_dir != 0:  # Previous was also vertical - go right
+                            target_left_rook_col = right_rook_pos.col + 4
+                        else:  # Previous was horizontal - go left
+                            target_left_rook_col = right_rook_pos.col - 4
+                    else:  # New player is horizontal (left or right) - go left
+                        target_left_rook_col = right_rook_pos.col - 4
+
+                    # The new player's left-side rook will be at (base_row, base_col)
+                    # So set base_row and base_col to the target position
+                    base_row = target_left_rook_row
+                    base_col = target_left_rook_col
+
+                    # Set direction for the new player
+                    direction = new_direction
+                else:
+                    # Fallback: use max position
+                    max_row = max(pos.row for pos in last_player_pieces)
+                    max_col = max(pos.col for pos in last_player_pieces)
+
+                    # Calculate direction for new player
+                    ring = (player_num - 2) // 4
+                    side = (player_num - 2) % 4
+                    if side == 0:
+                        new_direction = (0, -1)
+                    elif side == 1:
+                        new_direction = (1, 0)
+                    elif side == 2:
+                        new_direction = (0, 1)
+                    else:
+                        new_direction = (-1, 0)
+
+                    new_row_dir, new_col_dir = new_direction
+                    base_row = max_row - 11
+                    if new_row_dir != 0:  # Vertical - go right
+                        base_col = max_col + 4
+                    else:  # Horizontal - go left
+                        base_col = max_col - 4
+                    direction = new_direction
             else:
-                # Each ring starts 8 squares further out
-                start_row = -8 * ring
-                start_col = 8 * (ring + 1)
-            
-            # Calculate position based on side
-            if side == 0:  # Right side
-                base_row = start_row
-                base_col = start_col
-                direction = (0, -1)  # Leftward
-            elif side == 1:  # Top side
-                base_row = start_row - 8
-                base_col = start_col
-                direction = (1, 0)  # Downward
-            elif side == 2:  # Left side
-                base_row = start_row - 8
-                base_col = start_col - 8
-                direction = (0, 1)  # Rightward
-            else:  # Bottom side
-                base_row = start_row
-                base_col = start_col - 8
-                direction = (-1, 0)  # Upward
+                # Fallback: if we can't find pieces, use simple offset
+                ring = (player_num - 2) // 4
+                side = (player_num - 2) % 4
+                if side == 0:
+                    direction = (0, -1)
+                elif side == 1:
+                    direction = (1, 0)
+                elif side == 2:
+                    direction = (0, 1)
+                else:
+                    direction = (-1, 0)
+                base_row = (player_num - 1) * -11
+                base_col = (player_num - 1) * 4
 
         self.pawn_directions[player_id] = direction
         row_dir, col_dir = direction
@@ -483,7 +563,7 @@ class Board:
         # For downward (row_dir=1): pieces at base_row, pawns at base_row-1 (front) and base_row+1 (back)
         # For leftward (col_dir=-1): pieces at base_col, pawns at base_col+1 (front) and base_col-1 (back)
         # For rightward (col_dir=1): pieces at base_col, pawns at base_col-1 (front) and base_col+1 (back)
-        
+
         if row_dir != 0:  # Vertical orientation (up or down)
             if row_dir == -1:  # Upward
                 front_pawn_row = base_row + 1
@@ -493,25 +573,37 @@ class Board:
                 front_pawn_row = base_row - 1
                 piece_row = base_row
                 back_pawn_row = base_row + 1
-            
+
             # Add back row pieces
             for piece_type, col_offset in pieces_to_add:
                 self.add_piece(
-                    Piece(piece_type, player_id, Position(piece_row, base_col + col_offset))
+                    Piece(
+                        piece_type,
+                        player_id,
+                        Position(piece_row, base_col + col_offset),
+                    )
                 )
-            
+
             # Add front row pawns
             for col_offset in range(8):
                 self.add_piece(
-                    Piece("pawn", player_id, Position(front_pawn_row, base_col + col_offset))
+                    Piece(
+                        "pawn",
+                        player_id,
+                        Position(front_pawn_row, base_col + col_offset),
+                    )
                 )
-            
+
             # Add back row pawns
             for col_offset in range(8):
                 self.add_piece(
-                    Piece("pawn", player_id, Position(back_pawn_row, base_col + col_offset))
+                    Piece(
+                        "pawn",
+                        player_id,
+                        Position(back_pawn_row, base_col + col_offset),
+                    )
                 )
-            
+
             # Track starting rows for pawns
             self.pawn_starting_rows[player_id] = [front_pawn_row, back_pawn_row]
             self.pawn_starting_cols[player_id] = []
@@ -524,25 +616,37 @@ class Board:
                 front_pawn_col = base_col - 1
                 piece_col = base_col
                 back_pawn_col = base_col + 1
-            
+
             # Add back row pieces
             for piece_type, row_offset in pieces_to_add:
                 self.add_piece(
-                    Piece(piece_type, player_id, Position(base_row + row_offset, piece_col))
+                    Piece(
+                        piece_type,
+                        player_id,
+                        Position(base_row + row_offset, piece_col),
+                    )
                 )
-            
+
             # Add front row pawns
             for row_offset in range(8):
                 self.add_piece(
-                    Piece("pawn", player_id, Position(base_row + row_offset, front_pawn_col))
+                    Piece(
+                        "pawn",
+                        player_id,
+                        Position(base_row + row_offset, front_pawn_col),
+                    )
                 )
-            
+
             # Add back row pawns
             for row_offset in range(8):
                 self.add_piece(
-                    Piece("pawn", player_id, Position(base_row + row_offset, back_pawn_col))
+                    Piece(
+                        "pawn",
+                        player_id,
+                        Position(base_row + row_offset, back_pawn_col),
+                    )
                 )
-            
+
             # Track starting cols for pawns
             self.pawn_starting_cols[player_id] = [front_pawn_col, back_pawn_col]
             self.pawn_starting_rows[player_id] = []

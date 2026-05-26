@@ -71,9 +71,12 @@ After deployment, you'll need to update your frontend to point to the Railway ba
 
 ### Database Persistence
 
-- SQLite database (`chess_games.db`) will persist on Railway's filesystem
-- For production, consider upgrading to a PostgreSQL database (Railway offers managed PostgreSQL)
-- The current setup works fine for small-scale usage
+- **SQLite (default)**: Works for local development, but data is lost on Railway redeploys
+- **PostgreSQL (recommended)**: Persistent, managed database that survives deployments
+  - See `server/POSTGRES_SETUP.md` for setup instructions
+  - Just add a PostgreSQL service in Railway - it's automatic!
+  - Code automatically uses PostgreSQL when `DATABASE_URL` is set
+  - Local development still uses SQLite (no setup needed)
 
 ### Free Tier Limits
 

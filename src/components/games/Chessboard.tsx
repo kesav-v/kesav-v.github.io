@@ -14,7 +14,7 @@ import {
   LegalMove,
   MakeMoveResponse,
 } from "../../api/game";
-import { VISIBLE_RANGE_PADDING, PIECE_SVGS } from "./chess-constants";
+import { PIECE_SVGS } from "./chess-constants";
 import "./Chessboard.scss";
 
 interface ChessboardProps {
@@ -38,15 +38,18 @@ const Chessboard: React.FC<ChessboardProps> = ({
   const hasInitialCentered = useRef<boolean>(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const previousCooldownRef = useRef<number>(0);
+  const [transformState, setTransformState] = useState<{
+    positionX: number;
+    positionY: number;
+    scale: number;
+  }>({ positionX: 0, positionY: 0, scale: 1 });
   const [pieces, setPieces] = useState<Piece[]>([]);
+  const [pawnDirections, setPawnDirections] = useState<{
+    [playerId: string]: { row: number; col: number };
+  }>({});
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [legalMoves, setLegalMoves] = useState<LegalMove[]>([]);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
-  const [queuedMoves, setQueuedMoves] = useState<Array<{
-    from: Position;
-    to: Position;
-  }>>([]);
-  const MAX_QUEUED_MOVES = 10;
   const [promotionDialog, setPromotionDialog] = useState<{
     show: boolean;
     position: { x: number; y: number };
@@ -59,6 +62,12 @@ const Chessboard: React.FC<ChessboardProps> = ({
       const result = await gameApi.getBoardState(gameId);
       if (result?.success) {
         setPieces(result.pieces);
+        if (result.pawn_directions) {
+          setPawnDirections(result.pawn_directions);
+        } else {
+          // If no pawn_directions, initialize empty object
+          setPawnDirections({});
+        }
         // Fetch legal moves for the active player
         const moves = await gameApi.getLegalMoves(gameId, activePlayerId);
         setLegalMoves(moves);
@@ -70,52 +79,14 @@ const Chessboard: React.FC<ChessboardProps> = ({
     fetchBoardState();
   }, [gameId, activePlayerId]);
 
-  // Poll for cooldown updates and execute queued moves
+  // Poll for cooldown updates
   useEffect(() => {
     const updateCooldown = async () => {
       const result = await gameApi.getCooldown(gameId, activePlayerId);
       if (result?.success) {
-        const previousCooldown = previousCooldownRef.current;
         const newCooldown = result.cooldown_remaining;
         previousCooldownRef.current = newCooldown;
         setCooldownRemaining(newCooldown);
-
-        // If cooldown just expired and we have queued moves, execute only the first one
-        // But only if we're not waiting for a promotion dialog
-        if (previousCooldown > 0 && newCooldown === 0 && !promotionDialog) {
-          // Use a callback to get the latest queuedMoves state
-          setQueuedMoves((currentQueuedMoves) => {
-            if (currentQueuedMoves.length > 0) {
-              // Execute only the first move in the queue
-              const firstMove = currentQueuedMoves[0];
-              setTimeout(async () => {
-                const result = await makeMove(firstMove.from, firstMove.to);
-                // Only remove from queue if move completed without promotion
-                // If promotion is needed, handlePromotion will remove it after promotion
-                if (result?.success && !result.promotion_available) {
-                  setQueuedMoves((prev) => {
-                    // Remove the first move that matches
-                    if (prev.length > 0) {
-                      const first = prev[0];
-                      if (
-                        first.from.row === firstMove.from.row &&
-                        first.from.col === firstMove.from.col &&
-                        first.to.row === firstMove.to.row &&
-                        first.to.col === firstMove.to.col
-                      ) {
-                        return prev.slice(1);
-                      }
-                    }
-                    return prev;
-                  });
-                }
-              }, 50);
-              // Don't remove from queue yet - wait to see if promotion is needed
-              return currentQueuedMoves;
-            }
-            return currentQueuedMoves;
-          });
-        }
       }
     };
 
@@ -123,7 +94,28 @@ const Chessboard: React.FC<ChessboardProps> = ({
     const interval = setInterval(updateCooldown, 50); // Update every 50ms for smooth animation
 
     return () => clearInterval(interval);
-  }, [gameId, activePlayerId, promotionDialog]);
+  }, [gameId, activePlayerId]);
+
+  // Update transform state when transform changes
+  useEffect(() => {
+    const updateTransformState = () => {
+      if (transformComponentRef.current) {
+        const ref = transformComponentRef.current;
+        setTransformState({
+          positionX: ref.state.positionX,
+          positionY: ref.state.positionY,
+          scale: ref.state.scale,
+        });
+      }
+    };
+
+    // Initial update
+    updateTransformState();
+
+    // Set up interval to check for transform changes
+    const interval = setInterval(updateTransformState, 50);
+    return () => clearInterval(interval);
+  }, []);
 
   // Center the board on initial load
   useEffect(() => {
@@ -134,11 +126,11 @@ const Chessboard: React.FC<ChessboardProps> = ({
 
       // Find the king piece for the active player, or use the first piece, or spawn position
       let targetPosition: Position | null = null;
-      
+
       const king = pieces.find(
         (p) => p.type === "king" && p.player_id === activePlayerId
       );
-      
+
       if (king) {
         targetPosition = king.position;
       } else if (pieces.length > 0) {
@@ -161,13 +153,15 @@ const Chessboard: React.FC<ChessboardProps> = ({
         // Get the actual wrapper dimensions instead of window dimensions
         const wrapper = wrapperRef.current;
         const viewportWidth = wrapper ? wrapper.clientWidth : window.innerWidth;
-        const viewportHeight = wrapper ? wrapper.clientHeight : window.innerHeight;
-        
+        const viewportHeight = wrapper
+          ? wrapper.clientHeight
+          : window.innerHeight;
+
         // Calculate the content position (in content coordinates)
         // The board container starts at (0,0), so squares are positioned at (col * squareSize, row * squareSize)
         const contentX = targetPosition.col * squareSize + squareSize / 2;
         const contentY = targetPosition.row * squareSize + squareSize / 2;
-        
+
         // Calculate transform to center this point in the viewport
         // Transform translates the content, so to show contentX at viewport center:
         // viewportCenter = contentX + transformX
@@ -179,6 +173,12 @@ const Chessboard: React.FC<ChessboardProps> = ({
         try {
           transformComponentRef.current.setTransform(x, y, 1, 0);
           hasInitialCentered.current = true;
+          // Update transform state after centering
+          setTransformState({
+            positionX: x,
+            positionY: y,
+            scale: 1,
+          });
         } catch (error) {
           console.error("Error centering board:", error);
         }
@@ -202,12 +202,14 @@ const Chessboard: React.FC<ChessboardProps> = ({
       // Get the actual wrapper dimensions
       const wrapper = wrapperRef.current;
       const viewportWidth = wrapper ? wrapper.clientWidth : window.innerWidth;
-      const viewportHeight = wrapper ? wrapper.clientHeight : window.innerHeight;
-      
+      const viewportHeight = wrapper
+        ? wrapper.clientHeight
+        : window.innerHeight;
+
       // Calculate the content position (in content coordinates)
       const contentX = king.position.col * squareSize + squareSize / 2;
       const contentY = king.position.row * squareSize + squareSize / 2;
-      
+
       // Calculate transform to center this point in the viewport
       const x = viewportWidth / 2 - contentX;
       const y = viewportHeight / 2 - contentY;
@@ -217,44 +219,46 @@ const Chessboard: React.FC<ChessboardProps> = ({
     }
   };
 
-  const getVisibleRange = () => {
-    // Group pieces by player
-    const piecesByPlayer: { [playerId: string]: Position[] } = {};
-    pieces.forEach((piece) => {
-      if (!piecesByPlayer[piece.player_id]) {
-        piecesByPlayer[piece.player_id] = [];
-      }
-      piecesByPlayer[piece.player_id].push(piece.position);
-    });
-
-    // Calculate visible range for active player
-    const positions = piecesByPlayer[activePlayerId] || [];
-    if (positions.length === 0) {
-      const player = players.find((p) => p.id === activePlayerId);
-      if (player) {
-        positions.push(player.spawnPosition);
-      }
-    }
-
-    if (positions.length === 0) {
+  const getVisibleBounds = () => {
+    // Calculate which squares are visible in the viewport based on transform
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !transformComponentRef.current) {
+      // Fallback: show a default area
       return {
-        minRow: 0,
-        maxRow: 7,
-        minCol: 0,
-        maxCol: 7,
+        minRow: -10,
+        maxRow: 10,
+        minCol: -10,
+        maxCol: 10,
       };
     }
 
-    const minPieceRow = Math.min(...positions.map((p) => p.row));
-    const maxPieceRow = Math.max(...positions.map((p) => p.row));
-    const minPieceCol = Math.min(...positions.map((p) => p.col));
-    const maxPieceCol = Math.max(...positions.map((p) => p.col));
+    const viewportWidth = wrapper.clientWidth;
+    const viewportHeight = wrapper.clientHeight;
+    const { positionX, positionY, scale } = transformState;
+
+    // Calculate the visible area in content coordinates
+    // The transform translates content, so visible area is:
+    // left = -positionX / scale
+    // right = (viewportWidth - positionX) / scale
+    // top = -positionY / scale
+    // bottom = (viewportHeight - positionY) / scale
+
+    const left = -positionX / scale;
+    const right = (viewportWidth - positionX) / scale;
+    const top = -positionY / scale;
+    const bottom = (viewportHeight - positionY) / scale;
+
+    // Convert to row/col bounds (squares are positioned at col * squareSize, row * squareSize)
+    const minCol = Math.floor(left / squareSize);
+    const maxCol = Math.ceil(right / squareSize);
+    const minRow = Math.floor(top / squareSize);
+    const maxRow = Math.ceil(bottom / squareSize);
 
     return {
-      minRow: minPieceRow - VISIBLE_RANGE_PADDING,
-      maxRow: maxPieceRow + VISIBLE_RANGE_PADDING,
-      minCol: minPieceCol - VISIBLE_RANGE_PADDING,
-      maxCol: maxPieceCol + VISIBLE_RANGE_PADDING,
+      minRow,
+      maxRow,
+      minCol,
+      maxCol,
     };
   };
 
@@ -262,21 +266,6 @@ const Chessboard: React.FC<ChessboardProps> = ({
     const pieceAtPosition = pieces.find(
       (p) => p.position.row === row && p.position.col === col
     );
-
-    // If there are queued moves and user clicks on a queued destination, remove that specific move
-    if (queuedMoves.length > 0 && cooldownRemaining > 0) {
-      const clickedOnQueuedDestination = queuedMoves.some(
-        (move) => move.to.row === row && move.to.col === col
-      );
-      if (clickedOnQueuedDestination) {
-        // Remove the clicked queued move
-        setQueuedMoves((prev) =>
-          prev.filter((move) => !(move.to.row === row && move.to.col === col))
-        );
-        setSelectedPiece(null);
-        return;
-      }
-    }
 
     if (selectedPiece) {
       // Check if the move is legal
@@ -290,26 +279,15 @@ const Chessboard: React.FC<ChessboardProps> = ({
 
       if (isLegalMove) {
         const moveTo = { row, col };
-        
-        // If on cooldown, queue the move for later (up to MAX_QUEUED_MOVES)
-        if (cooldownRemaining > 0) {
-          setQueuedMoves((prev) => {
-            if (prev.length >= MAX_QUEUED_MOVES) {
-              return prev; // Don't add if at max capacity
-            }
-            return [...prev, { from: selectedPiece.position, to: moveTo }];
-          });
-          setSelectedPiece(null);
-          return;
-        }
-
-        // Otherwise, make the move immediately
         const result = await makeMove(selectedPiece.position, moveTo);
         if (!result?.success) {
           if (result?.cooldown_remaining) {
             setCooldownRemaining(result.cooldown_remaining);
           }
-          setSelectedPiece(null);
+          // Don't clear selected piece if promotion dialog is being shown
+          if (!result?.promotion_available) {
+            setSelectedPiece(null);
+          }
         } else if (!result.promotion_available) {
           setSelectedPiece(null);
         }
@@ -334,39 +312,51 @@ const Chessboard: React.FC<ChessboardProps> = ({
     to: Position,
     promotionPiece?: string
   ): Promise<MakeMoveResponse | null> => {
-    const result = await gameApi.makeMove(gameId, activePlayerId, from, to, promotionPiece);
+    const result = await gameApi.makeMove(
+      gameId,
+      activePlayerId,
+      from,
+      to,
+      promotionPiece
+    );
+
+    // If promotion is available and no promotion piece was specified, show the dialog
+    // This can happen whether the move succeeded or failed (if it failed due to missing promotion piece)
+    if (result?.promotion_available && !promotionPiece) {
+      setPromotionDialog({
+        show: true,
+        position: {
+          x: to.col * squareSize,
+          y: to.row * squareSize,
+        },
+        from,
+        to,
+      });
+      return result;
+    }
 
     if (result?.success) {
-      // If promotion is available and no promotion piece was specified, show the dialog
-      if (result.promotion_available && !promotionPiece) {
-        setPromotionDialog({
-          show: true,
-          position: {
-            x: to.col * squareSize,
-            y: to.row * squareSize,
-          },
-          from,
-          to,
-        });
-        return result;
-      }
-
       // Get the updated board state
       const boardState = await gameApi.getBoardState(gameId);
       if (boardState?.success) {
         // First update the pieces
         setPieces(boardState.pieces);
+        if (boardState.pawn_directions) {
+          setPawnDirections(boardState.pawn_directions);
+        }
         // Clear selected piece and legal moves before fetching new ones
-        // Don't clear queued moves - they'll execute one by one as cooldowns expire
         setSelectedPiece(null);
         setLegalMoves([]);
 
         // Then fetch legal moves for the active player
         const moves = await gameApi.getLegalMoves(gameId, activePlayerId);
         setLegalMoves(moves);
-        
+
         // Update cooldown
-        const cooldownResult = await gameApi.getCooldown(gameId, activePlayerId);
+        const cooldownResult = await gameApi.getCooldown(
+          gameId,
+          activePlayerId
+        );
         if (cooldownResult?.success) {
           previousCooldownRef.current = cooldownResult.cooldown_remaining;
           setCooldownRemaining(cooldownResult.cooldown_remaining);
@@ -382,35 +372,39 @@ const Chessboard: React.FC<ChessboardProps> = ({
 
   const handlePromotion = async (piece: string) => {
     if (promotionDialog) {
-      const result = await makeMove(promotionDialog.from, promotionDialog.to, piece);
+      await makeMove(promotionDialog.from, promotionDialog.to, piece);
       setPromotionDialog(null);
-      
-      // After promotion is handled, remove the first move from queue if it matches
-      if (result?.success) {
-        setQueuedMoves((prev) => {
-          if (prev.length > 0) {
-            const firstMove = prev[0];
-            if (
-              firstMove.from.row === promotionDialog.from.row &&
-              firstMove.from.col === promotionDialog.from.col &&
-              firstMove.to.row === promotionDialog.to.row &&
-              firstMove.to.col === promotionDialog.to.col
-            ) {
-              return prev.slice(1);
-            }
-          }
-          return prev;
-        });
-      }
+      setSelectedPiece(null);
     }
   };
 
   const renderBoard = () => {
     const squares = [];
-    const visibleRange = getVisibleRange();
+    const bounds = getVisibleBounds();
 
-    for (let row = visibleRange.minRow; row <= visibleRange.maxRow; row++) {
-      for (let col = visibleRange.minCol; col <= visibleRange.maxCol; col++) {
+    // Calculate border bounds for active player
+    const activePlayerPositions = pieces
+      .filter((p) => p.player_id === activePlayerId)
+      .map((p) => p.position);
+
+    let borderBounds: {
+      minRow: number;
+      maxRow: number;
+      minCol: number;
+      maxCol: number;
+    } | null = null;
+
+    if (activePlayerPositions.length > 0) {
+      borderBounds = {
+        minRow: Math.min(...activePlayerPositions.map((p) => p.row)),
+        maxRow: Math.max(...activePlayerPositions.map((p) => p.row)),
+        minCol: Math.min(...activePlayerPositions.map((p) => p.col)),
+        maxCol: Math.max(...activePlayerPositions.map((p) => p.col)),
+      };
+    }
+
+    for (let row = bounds.minRow; row <= bounds.maxRow; row++) {
+      for (let col = bounds.minCol; col <= bounds.maxCol; col++) {
         const piece = pieces.find(
           (p) => p.position.row === row && p.position.col === col
         );
@@ -426,9 +420,6 @@ const Chessboard: React.FC<ChessboardProps> = ({
               move.to.row === row &&
               move.to.col === col
           );
-        const isQueuedMoveDestination = queuedMoves.some(
-          (move) => move.to.row === row && move.to.col === col
-        );
         const hasLegalMoves =
           piece &&
           legalMoves.some(
@@ -436,6 +427,14 @@ const Chessboard: React.FC<ChessboardProps> = ({
               move.from.row === piece.position.row &&
               move.from.col === piece.position.col
           );
+
+        // Check if square is outside the border
+        const isOutsideBorder = borderBounds
+          ? row < borderBounds.minRow ||
+            row > borderBounds.maxRow ||
+            col < borderBounds.minCol ||
+            col > borderBounds.maxCol
+          : false;
 
         squares.push(
           <ChessSquare
@@ -446,11 +445,16 @@ const Chessboard: React.FC<ChessboardProps> = ({
             piece={piece}
             isSelected={isSelected}
             isLegalMove={!!isLegalMove}
-            isQueuedMove={!!isQueuedMoveDestination}
             hasLegalMoves={!!hasLegalMoves}
             lightSquareColor={lightSquareColor}
             darkSquareColor={darkSquareColor}
             getPlayerColor={getPlayerColor}
+            pawnDirection={
+              piece?.type === "pawn"
+                ? pawnDirections[piece.player_id]
+                : undefined
+            }
+            isOutsideBorder={isOutsideBorder}
             onClick={() => handleSquareClick(row, col)}
           />
         );
@@ -473,22 +477,11 @@ const Chessboard: React.FC<ChessboardProps> = ({
     );
   };
 
-  const cooldownProgress = cooldownRemaining > 0 ? (cooldownRemaining / 3.0) * 100 : 0;
-
-  const handleRightClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (queuedMoves.length > 0) {
-      setQueuedMoves([]);
-      setSelectedPiece(null);
-    }
-  };
+  const cooldownProgress =
+    cooldownRemaining > 0 ? (cooldownRemaining / 3.0) * 100 : 0;
 
   return (
-    <div 
-      className="chessboard" 
-      ref={wrapperRef}
-      onContextMenu={handleRightClick}
-    >
+    <div className="chessboard" ref={wrapperRef}>
       <button
         className="chessboard__center-button"
         onClick={centerOnKing}
@@ -518,7 +511,7 @@ const Chessboard: React.FC<ChessboardProps> = ({
       {cooldownRemaining > 0 && (
         <div className="chessboard__cooldown">
           <div className="chessboard__cooldown-bar">
-            <div 
+            <div
               className="chessboard__cooldown-progress"
               style={{ width: `${cooldownProgress}%` }}
             />
@@ -528,8 +521,8 @@ const Chessboard: React.FC<ChessboardProps> = ({
       <TransformWrapper
         ref={transformComponentRef}
         initialScale={1}
-        minScale={0.1}
-        maxScale={10}
+        minScale={0.5} // Maximum zoom out: 2x (1/2 = 0.5)
+        maxScale={2} // Maximum zoom in: 2x
         centerOnInit={false}
         limitToBounds={false}
         doubleClick={{ disabled: true }}
@@ -537,6 +530,15 @@ const Chessboard: React.FC<ChessboardProps> = ({
           // Ensure transform ref is set
           if (ref) {
             transformComponentRef.current = ref;
+          }
+        }}
+        onTransformed={(ref) => {
+          if (ref) {
+            setTransformState({
+              positionX: ref.state.positionX,
+              positionY: ref.state.positionY,
+              scale: ref.state.scale,
+            });
           }
         }}
       >
