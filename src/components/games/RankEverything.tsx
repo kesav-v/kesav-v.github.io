@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchRandomPair, WikiArticle } from "../../api/wikipedia";
 import {
-  DEFAULT_ELO,
   getArticleElo,
   getRankings,
   RatedArticle,
