@@ -274,6 +274,113 @@ p {
   text-decoration: underline;
 }
 
+.rank-category {
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.rank-category-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #b0b8c4;
+}
+
+.rank-category-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.rank-category-mode {
+  border: 1px solid #373d48;
+  background-color: #1a1e24;
+  color: #d4d8de;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.rank-category-mode:hover {
+  border-color: #61dafb;
+}
+
+.rank-category-mode--active {
+  border-color: #61dafb;
+  background-color: #243040;
+  color: #61dafb;
+}
+
+.rank-category-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rank-category-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #373d48;
+  background-color: #1a1e24;
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.rank-category-input:focus {
+  outline: none;
+  border-color: #61dafb;
+}
+
+.rank-category-apply {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.rank-category-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.rank-category-suggestions {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid #373d48;
+  border-radius: 6px;
+  background-color: #1a1e24;
+}
+
+.rank-category-suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: none;
+  color: #61dafb;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.rank-category-suggestion:hover {
+  background-color: #243040;
+}
+
+.rank-category-active {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
 .rank-matchup {
   margin-bottom: 1rem;
 }
@@ -551,6 +658,19 @@ p {
 
   .rank-header-row h2 {
     font-size: 1.25rem;
+  }
+
+  .rank-category-input {
+    font-size: 16px;
+  }
+
+  .rank-category-modes {
+    gap: 0.35rem;
+  }
+
+  .rank-category-mode {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.55rem;
   }
 
   .rank-versus {

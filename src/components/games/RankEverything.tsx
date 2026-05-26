@@ -1,6 +1,18 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchRandomPair, WikiArticle } from "../../api/wikipedia";
+import {
+  categoryDisplayName,
+  fetchRandomPair,
+  normalizeCategoryTitle,
+  searchCategories,
+  WikiArticle,
+  WikiCategory,
+} from "../../api/wikipedia";
+import {
+  loadSavedCategory,
+  POPULAR_CATEGORIES,
+  saveCategory,
+} from "../../lib/rankCategory";
 import {
   getArticleElo,
   getRankings,
@@ -22,6 +34,16 @@ const RankEverything: React.FC = () => {
     loserDelta: number;
   } | null>(null);
 
+  const [activeCategory, setActiveCategory] = useState<string | null>(
+    loadSavedCategory
+  );
+  const [categoryQuery, setCategoryQuery] = useState(() => {
+    const saved = loadSavedCategory();
+    return saved ? categoryDisplayName(saved) : "";
+  });
+  const [suggestions, setSuggestions] = useState<WikiCategory[]>([]);
+  const [searchingCategories, setSearchingCategories] = useState(false);
+
   const refreshRankings = useCallback(() => {
     setRankings(getRankings());
   }, []);
@@ -31,16 +53,21 @@ const RankEverything: React.FC = () => {
     setError(null);
     setLastVote(null);
     try {
-      const next = await fetchRandomPair();
+      const next = await fetchRandomPair(activeCategory);
       setPair(next);
       setExplanation("");
     } catch {
-      setError("Could not load articles. Please try again.");
+      const label = activeCategory
+        ? categoryDisplayName(activeCategory)
+        : "Wikipedia";
+      setError(
+        `Could not load articles from ${label}. Try another category or skip.`
+      );
       setPair(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeCategory]);
 
   useEffect(() => {
     loadPair();
@@ -49,6 +76,53 @@ const RankEverything: React.FC = () => {
   useEffect(() => {
     if (showRankings) refreshRankings();
   }, [showRankings, refreshRankings]);
+
+  useEffect(() => {
+    const trimmed = categoryQuery.trim().replace(/^category:/i, "");
+    if (trimmed.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    let cancelled = false;
+    setSearchingCategories(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const results = await searchCategories(trimmed);
+        if (!cancelled) setSuggestions(results);
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setSearchingCategories(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [categoryQuery]);
+
+  const applyCategory = (category: string | null) => {
+    setActiveCategory(category);
+    saveCategory(category);
+    if (category) {
+      setCategoryQuery(categoryDisplayName(category));
+    } else {
+      setCategoryQuery("");
+    }
+    setSuggestions([]);
+  };
+
+  const handleCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const normalized = normalizeCategoryTitle(categoryQuery);
+    if (normalized === activeCategory) {
+      loadPair();
+      return;
+    }
+    applyCategory(normalized);
+  };
 
   const handleVote = async (winner: WikiArticle, loser: WikiArticle) => {
     const result = recordVote(
@@ -82,7 +156,11 @@ const RankEverything: React.FC = () => {
             {article.title}
           </a>
         </h3>
-        <div className="rank-extract-wrap" tabIndex={0} aria-label="Article preview">
+        <div
+          className="rank-extract-wrap"
+          tabIndex={0}
+          aria-label="Article preview"
+        >
           <p className="rank-extract">{article.extract}</p>
         </div>
         <button
@@ -125,6 +203,81 @@ const RankEverything: React.FC = () => {
             </button>
           </div>
         </div>
+
+        <section className="rank-category" aria-label="Category filter">
+          <p className="rank-category-label">Category</p>
+          <div className="rank-category-modes">
+            <button
+              type="button"
+              className={`rank-category-mode ${
+                activeCategory === null ? "rank-category-mode--active" : ""
+              }`}
+              onClick={() => applyCategory(null)}
+            >
+              All Wikipedia
+            </button>
+            {POPULAR_CATEGORIES.map((cat) => (
+              <button
+                key={cat.title}
+                type="button"
+                className={`rank-category-mode ${
+                  activeCategory === cat.title
+                    ? "rank-category-mode--active"
+                    : ""
+                }`}
+                onClick={() => applyCategory(cat.title)}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          <form className="rank-category-form" onSubmit={handleCategorySubmit}>
+            <input
+              type="search"
+              className="rank-category-input"
+              value={categoryQuery}
+              onChange={(e) => setCategoryQuery(e.target.value)}
+              placeholder="Search categories (e.g. Astronomy, Dogs)…"
+              aria-label="Search Wikipedia categories"
+              autoComplete="off"
+            />
+            <button
+              type="submit"
+              className="wiki-refresh-btn rank-category-apply"
+              disabled={!categoryQuery.trim()}
+            >
+              Apply
+            </button>
+          </form>
+
+          {searchingCategories && (
+            <p className="rank-category-hint">Searching…</p>
+          )}
+
+          {!searchingCategories && suggestions.length > 0 && (
+            <ul className="rank-category-suggestions" role="listbox">
+              {suggestions.map((cat) => (
+                <li key={cat.title}>
+                  <button
+                    type="button"
+                    role="option"
+                    className="rank-category-suggestion"
+                    onClick={() => applyCategory(cat.title)}
+                  >
+                    {cat.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="rank-category-active">
+            {activeCategory
+              ? `Comparing articles in: ${categoryDisplayName(activeCategory)}`
+              : "Comparing random articles from all of Wikipedia"}
+          </p>
+        </section>
       </div>
 
       {error && <p className="wiki-error">{error}</p>}
