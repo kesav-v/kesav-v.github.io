@@ -90,7 +90,7 @@ const RankEverything: React.FC = () => {
           disabled={loading}
           onClick={() => handleVote(article, opponent)}
         >
-          This one is better
+          Pick this one
         </button>
       </article>
     );
@@ -102,31 +102,68 @@ const RankEverything: React.FC = () => {
         <Link to="/games" className="rank-back-link">
           ← Games
         </Link>
-        <h2>Rank Everything</h2>
-        <p className="wiki-intro">
-          Pick the better Wikipedia article. Each article starts at {DEFAULT_ELO}{" "}
-          Elo and moves up or down based on your choices.
-        </p>
-        <div className="rank-toolbar">
-          <button
-            type="button"
-            className={`wiki-refresh-btn rank-toggle-btn ${
-              showRankings ? "rank-toggle-btn--active" : ""
-            }`}
-            onClick={() => setShowRankings((v) => !v)}
-          >
-            {showRankings ? "Hide rankings" : "Show rankings"}
-          </button>
-          <button
-            type="button"
-            className="wiki-refresh-btn rank-secondary-btn"
-            onClick={loadPair}
-            disabled={loading}
-          >
-            Skip pair
-          </button>
+        <div className="rank-header-row">
+          <h2>Rank Everything</h2>
+          <div className="rank-toolbar">
+            <button
+              type="button"
+              className={`wiki-refresh-btn rank-toggle-btn ${
+                showRankings ? "rank-toggle-btn--active" : ""
+              }`}
+              onClick={() => setShowRankings((v) => !v)}
+            >
+              {showRankings ? "Hide" : "Rankings"}
+            </button>
+            <button
+              type="button"
+              className="wiki-refresh-btn rank-secondary-btn"
+              onClick={loadPair}
+              disabled={loading}
+            >
+              Skip
+            </button>
+          </div>
         </div>
       </div>
+
+      {error && <p className="wiki-error">{error}</p>}
+
+      <section className="rank-matchup" aria-label="Article comparison">
+        {loading && !pair ? (
+          <div className="rank-versus rank-versus--loading">
+            <div className="rank-card rank-card--loading" />
+            <div className="rank-vs">vs</div>
+            <div className="rank-card rank-card--loading" />
+          </div>
+        ) : pair ? (
+          <div className={`rank-versus ${loading ? "rank-versus--busy" : ""}`}>
+            {renderArticleCard(pair[0], pair[1], "left")}
+            <div className="rank-vs">vs</div>
+            {renderArticleCard(pair[1], pair[0], "right")}
+          </div>
+        ) : null}
+      </section>
+
+      {lastVote && (
+        <p className="rank-vote-feedback">
+          <strong>{lastVote.winner}</strong> (
+          {lastVote.winnerDelta >= 0 ? "+" : ""}
+          {lastVote.winnerDelta}) beat <strong>{lastVote.loser}</strong> (
+          {lastVote.loserDelta})
+        </p>
+      )}
+
+      <label className="rank-explanation-label">
+        Explanation <span className="rank-optional">(optional)</span>
+        <textarea
+          className="rank-explanation-input"
+          value={explanation}
+          onChange={(e) => setExplanation(e.target.value)}
+          placeholder="Why did you pick one over the other?"
+          rows={2}
+          disabled={loading}
+        />
+      </label>
 
       {showRankings && (
         <section className="rank-leaderboard">
@@ -156,43 +193,6 @@ const RankEverything: React.FC = () => {
           )}
         </section>
       )}
-
-      <label className="rank-explanation-label">
-        Explanation <span className="rank-optional">(optional)</span>
-        <textarea
-          className="rank-explanation-input"
-          value={explanation}
-          onChange={(e) => setExplanation(e.target.value)}
-          placeholder="Why did you pick one over the other?"
-          rows={2}
-          disabled={loading}
-        />
-      </label>
-
-      {lastVote && (
-        <p className="rank-vote-feedback">
-          Recorded: <strong>{lastVote.winner}</strong> (
-          {lastVote.winnerDelta >= 0 ? "+" : ""}
-          {lastVote.winnerDelta}) beat <strong>{lastVote.loser}</strong> (
-          {lastVote.loserDelta})
-        </p>
-      )}
-
-      {error && <p className="wiki-error">{error}</p>}
-
-      {loading && !pair ? (
-        <div className="rank-versus rank-versus--loading">
-          <div className="rank-card rank-card--loading" />
-          <div className="rank-vs">vs</div>
-          <div className="rank-card rank-card--loading" />
-        </div>
-      ) : pair ? (
-        <div className={`rank-versus ${loading ? "rank-versus--busy" : ""}`}>
-          {renderArticleCard(pair[0], pair[1], "left")}
-          <div className="rank-vs">vs</div>
-          {renderArticleCard(pair[1], pair[0], "right")}
-        </div>
-      ) : null}
     </div>
   );
 };

@@ -244,14 +244,27 @@ p {
 }
 
 .rank-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.rank-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.rank-header-row h2 {
+  margin: 0;
+  font-size: 1.5rem;
 }
 
 .rank-back-link {
   display: inline-block;
   color: #61dafb;
   text-decoration: none;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   font-size: 0.95rem;
 }
 
@@ -259,11 +272,21 @@ p {
   text-decoration: underline;
 }
 
+.rank-matchup {
+  margin-bottom: 1rem;
+}
+
 .rank-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  margin-bottom: 0;
+}
+
+.rank-toolbar .wiki-refresh-btn {
+  margin-bottom: 0;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
 }
 
 .rank-toggle-btn--active {
@@ -458,12 +481,12 @@ p {
 
 .rank-extract {
   flex: 1;
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.45;
   color: #d4d8de;
   overflow-y: auto;
-  max-height: 200px;
+  max-height: 160px;
 }
 
 .rank-pick-btn {
@@ -494,11 +517,105 @@ p {
 }
 
 @media (max-width: 700px) {
+  .main-content:has(.rank-page) {
+    max-width: 100%;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+  }
+
+  .rank-page {
+    padding: 0.5rem 0.25rem 1.5rem;
+  }
+
+  .rank-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .rank-header-row h2 {
+    font-size: 1.25rem;
+  }
+
   .rank-versus {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    align-items: start;
   }
 
   .rank-vs {
-    padding: 0.25rem 0;
+    display: none;
+  }
+
+  .rank-card {
+    padding: 0.65rem;
+    min-width: 0;
+  }
+
+  .rank-card--loading {
+    min-height: 140px;
+  }
+
+  .rank-card h3 {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.25;
+  }
+
+  .rank-elo {
+    font-size: 0.7rem;
+  }
+
+  .rank-extract {
+    font-size: 0.75rem;
+    line-height: 1.35;
+    margin-bottom: 0.5rem;
+    max-height: none;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+  }
+
+  .rank-pick-btn {
+    padding: 0.55rem 0.4rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+
+  .rank-vote-feedback {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.65rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .rank-explanation-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .rank-explanation-input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+    padding: 0.5rem;
+  }
+
+  .rank-leaderboard-row {
+    grid-template-columns: 1.5rem 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0.15rem 0.5rem;
+  }
+
+  .rank-leaderboard-record {
+    grid-column: 2 / -1;
+    text-align: left;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .rank-extract {
+    -webkit-line-clamp: 4;
+  }
+
+  .rank-pick-btn {
+    font-size: 0.75rem;
   }
 }
