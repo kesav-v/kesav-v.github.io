@@ -21,6 +21,16 @@ interface WikiApiResponse {
 const WIKI_API =
   "https://en.wikipedia.org/w/api.php?action=query&generator=random&grnnamespace=0&prop=extracts|info&inprop=url&exintro=1&explaintext=1&format=json&origin=*";
 
+export async function fetchRandomPair(): Promise<[WikiArticle, WikiArticle]> {
+  const articles = await fetchRandomArticles(4);
+  if (articles.length < 2) {
+    throw new Error("Not enough articles returned");
+  }
+  const a = articles[0];
+  const b = articles.find((x) => x.pageId !== a.pageId) ?? articles[1];
+  return [a, b];
+}
+
 export async function fetchRandomArticles(
   count: number = 5
 ): Promise<WikiArticle[]> {

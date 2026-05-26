@@ -11,6 +11,13 @@ const Games: React.FC = () => {
       path: "/games/infinite-chess",
       comingSoon: false,
     },
+    {
+      title: "Rank Everything",
+      description:
+        "Compare random Wikipedia articles head-to-head and build Elo rankings for everything you've judged.",
+      path: "/games/rank-everything",
+      comingSoon: false,
+    },
   ];
 
   return (
