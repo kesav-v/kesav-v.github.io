@@ -32,14 +32,16 @@ function isLoopbackHost(hostname: string): boolean {
 }
 
 export function getRedirectUri(): string {
-  const configured = process.env.REACT_APP_SPOTIFY_REDIRECT_URI?.trim();
-  if (configured) {
-    return configured;
-  }
   const origin = getOriginForRedirect();
+
   if (isLoopbackHost(window.location.hostname)) {
+    const configured = process.env.REACT_APP_SPOTIFY_REDIRECT_URI?.trim();
+    if (configured) {
+      return configured;
+    }
     return `${origin}/callback`;
   }
+
   return `${origin}/`;
 }
 
