@@ -69,16 +69,26 @@
 }
 
 .nav-link {
-  color: white;
+  color: #d4d8de;
   text-decoration: none;
   font-size: 1.2rem;
+  font-weight: 500;
   padding: 0.5rem 1rem;
   border-radius: 4px;
-  transition: background-color 0.3s;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .nav-link:hover {
+  color: #ffffff;
   background-color: #373d48;
+  border-bottom-color: rgba(97, 218, 251, 0.45);
+}
+
+.nav-link--active {
+  color: #61dafb;
+  background-color: #243040;
+  border-bottom-color: #61dafb;
 }
 
 .main-content {
@@ -98,6 +108,27 @@
 
 .section {
   animation: fadeIn 0.5s ease-in;
+}
+
+.section a {
+  color: #61dafb;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: rgba(97, 218, 251, 0.35);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.section a:hover {
+  color: #a8eeff;
+  text-decoration-color: #61dafb;
+}
+
+.section a:focus-visible {
+  outline: 2px solid #61dafb;
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 h1 {

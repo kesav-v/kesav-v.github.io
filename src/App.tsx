@@ -1,10 +1,8 @@
 import React, { useEffect } from "react";
-import { HashRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, NavLink, useLocation } from "react-router-dom";
 import "./App.css";
 import Home from "./components/Home";
-import Engineering from "./components/Engineering";
-import Chess from "./components/Chess";
-import Music from "./components/Music";
+import About from "./components/About";
 import Slop from "./components/Slop";
 import InfiniteChess from "./components/games/InfiniteChess";
 import RankEverything from "./components/games/RankEverything";
@@ -36,29 +34,28 @@ function AppContent() {
         <>
       {!isChessboardActive && (
         <nav className="nav-bar">
-          <Link to="/" className="nav-link">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `nav-link${isActive ? " nav-link--active" : ""}`
+            }
+          >
             Home
-          </Link>
-          <Link to="/engineering" className="nav-link">
-            Engineering
-          </Link>
-          <Link to="/chess" className="nav-link">
-            Chess
-          </Link>
-          <Link to="/music" className="nav-link">
-            Music
-          </Link>
-          <Link to="/slop" className="nav-link">
+          </NavLink>
+          <NavLink
+            to="/slop"
+            className={({ isActive }) =>
+              `nav-link${isActive ? " nav-link--active" : ""}`
+            }
+          >
             Slop
-          </Link>
+          </NavLink>
         </nav>
       )}
       <main className={isChessboardActive ? "main-content fullscreen" : "main-content"}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/engineering" element={<Engineering />} />
-            <Route path="/chess" element={<Chess />} />
-            <Route path="/music" element={<Music />} />
             <Route path="/slop" element={<Slop />} />
             <Route path="/slop/rank-everything" element={<RankEverything />} />
             <Route path="/slop/clipify" element={<Clipify />} />
