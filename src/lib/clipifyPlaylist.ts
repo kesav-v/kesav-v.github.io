@@ -70,14 +70,21 @@ export function decodeClipTimestamps(encoded: string): {
   };
 }
 
+export function defaultClipifyPlaylistName(date = new Date()): string {
+  const datePart = date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timePart = date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `Clipify Playlist on ${datePart} at ${timePart}`;
+}
+
 export function formatClipifyPlaylistName(name?: string): string {
-  const base =
-    name ??
-    new Date().toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const base = name?.trim() || defaultClipifyPlaylistName();
   if (isClipifyPlaylistName(base)) {
     return base;
   }

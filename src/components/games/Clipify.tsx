@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchAllLikedTracks, createClipsPlaylist, fetchClipifyPlaylists, fetchClipifyPlaylistClips, LikedTrack, ClipifyPlaylistSummary } from "../../api/spotify";
-import { ClipExportItem, ParsedPlaylistClip, stripClipifyPlaylistPrefix } from "../../lib/clipifyPlaylist";
+import { ClipExportItem, defaultClipifyPlaylistName, ParsedPlaylistClip, stripClipifyPlaylistPrefix } from "../../lib/clipifyPlaylist";
 import { formatTime } from "../../lib/formatTime";
 import {
   clearSpotifySession,
@@ -39,6 +39,8 @@ const Clipify: React.FC = () => {
   const [playback, setPlayback] = useState<PlaybackState | null>(null);
   const [playError, setPlayError] = useState<string | null>(null);
   const [exportingPlaylist, setExportingPlaylist] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportPlaylistName, setExportPlaylistName] = useState(defaultClipifyPlaylistName);
   const [exportedPlaylistUrl, setExportedPlaylistUrl] = useState<string | null>(null);
   const [pendingStartMs, setPendingStartMs] = useState<number | null>(null);
   const [markersByTrack, setMarkersByTrack] = useState<ClipsByTrack>({});
@@ -495,8 +497,13 @@ const Clipify: React.FC = () => {
     setPlayError(null);
     setExportedPlaylistUrl(null);
     try {
-      const playlist = await createClipsPlaylist(buildClipExportItems());
+      const playlist = await createClipsPlaylist(
+        buildClipExportItems(),
+        exportPlaylistName
+      );
       setExportedPlaylistUrl(playlist.url);
+      setExportPlaylistName(defaultClipifyPlaylistName());
+      setShowExportModal(false);
       if (view === "playlists") {
         loadClipifyPlaylists().catch(() => undefined);
       }
@@ -506,6 +513,17 @@ const Clipify: React.FC = () => {
       );
     } finally {
       setExportingPlaylist(false);
+    }
+  };
+
+  const openExportModal = () => {
+    setExportPlaylistName(defaultClipifyPlaylistName());
+    setShowExportModal(true);
+  };
+
+  const closeExportModal = () => {
+    if (!exportingPlaylist) {
+      setShowExportModal(false);
     }
   };
 
@@ -548,6 +566,21 @@ const Clipify: React.FC = () => {
     );
   };
 
+  useEffect(() => {
+    if (!showExportModal) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !exportingPlaylist) {
+        setShowExportModal(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showExportModal, exportingPlaylist]);
+
   const handleViewChange = (nextView: ClipifyView) => {
     setView(nextView);
     if (
@@ -564,7 +597,11 @@ const Clipify: React.FC = () => {
   };
 
   return (
-    <div className="section wiki-page clipify-page">
+    <div
+      className={`section wiki-page clipify-page${
+        loggedIn && displayTrack ? " clipify-page--has-player" : ""
+      }`}
+    >
       <header className="clipify-header">
         <Link to="/slop" className="rank-back-link">
           ← Slop
@@ -575,13 +612,10 @@ const Clipify: React.FC = () => {
             {loggedIn && clipCount > 0 && (
               <button
                 type="button"
-                className="clipify-btn clipify-btn--spotify"
-                onClick={handleExportPlaylist}
-                disabled={exportingPlaylist}
+                className="clipify-btn clipify-btn--spotify clipify-header-export-btn"
+                onClick={openExportModal}
               >
-                {exportingPlaylist
-                  ? "Creating playlist…"
-                  : `Export ${clipCount} clip${clipCount === 1 ? "" : "s"}`}
+                Export {clipCount} clip{clipCount === 1 ? "" : "s"}
               </button>
             )}
             {loggedIn && (
@@ -686,52 +720,6 @@ const Clipify: React.FC = () => {
             Reconnect Spotify
           </button>
         </div>
-      )}
-
-      {loggedIn && displayTrack && (
-        <section className="clipify-now-playing" aria-label="Now playing">
-          <div className="clipify-now-playing-info">
-            <p className="clipify-now-playing-label">
-              {clipBounds ? "Now playing clip" : "Now playing"}
-            </p>
-            <p className="clipify-now-playing-title">{displayTrack.title}</p>
-            <p className="clipify-now-playing-artist">{displayTrack.artists}</p>
-            {clipBounds && (
-              <p className="clipify-now-playing-clip">
-                Clip {formatTime(clipBounds.startMs)}–{formatTime(clipBounds.endMs)}
-              </p>
-            )}
-          </div>
-          <div className="clipify-scrubber">
-            <span className="clipify-time">{displayPositionLabel}</span>
-            <input
-              type="range"
-              className="clipify-scrubber-input"
-              min={scrubMin}
-              max={scrubMax || 1}
-              value={scrubValue}
-              onChange={(e) => handleScrubChange(Number(e.target.value))}
-              onMouseUp={(e) =>
-                handleScrubCommit(Number((e.target as HTMLInputElement).value))
-              }
-              onTouchEnd={(e) =>
-                handleScrubCommit(
-                  Number((e.target as HTMLInputElement).value)
-                )
-              }
-              aria-label="Seek"
-            />
-            <span className="clipify-time">{displayDurationLabel}</span>
-          </div>
-          {!clipBounds && (
-            <p className="clipify-marker-hint">
-              Press <kbd>M</kbd> to mark{" "}
-              {pendingStartMs === null
-                ? "start"
-                : `end (start at ${formatTime(pendingStartMs)})`}
-            </p>
-          )}
-        </section>
       )}
 
       {loggedIn && view === "liked" && tracks.length > 0 && (
@@ -943,6 +931,124 @@ const Clipify: React.FC = () => {
 
       {loggedIn && view === "liked" && !loading && tracks.length === 0 && !error && (
         <p className="clipify-empty">No liked songs found.</p>
+      )}
+
+      {loggedIn && displayTrack && (
+        <section className="clipify-now-playing" aria-label="Now playing">
+          <div className="clipify-now-playing-info">
+            <p className="clipify-now-playing-label">
+              {clipBounds ? "Now playing clip" : "Now playing"}
+            </p>
+            <p className="clipify-now-playing-title">{displayTrack.title}</p>
+            <p className="clipify-now-playing-artist">{displayTrack.artists}</p>
+            {clipBounds && (
+              <p className="clipify-now-playing-clip">
+                Clip {formatTime(clipBounds.startMs)}–{formatTime(clipBounds.endMs)}
+              </p>
+            )}
+          </div>
+          <div className="clipify-now-playing-controls">
+            <div className="clipify-scrubber">
+              <span className="clipify-time">{displayPositionLabel}</span>
+              <input
+                type="range"
+                className="clipify-scrubber-input"
+                min={scrubMin}
+                max={scrubMax || 1}
+                value={scrubValue}
+                onChange={(e) => handleScrubChange(Number(e.target.value))}
+                onMouseUp={(e) =>
+                  handleScrubCommit(Number((e.target as HTMLInputElement).value))
+                }
+                onTouchEnd={(e) =>
+                  handleScrubCommit(
+                    Number((e.target as HTMLInputElement).value)
+                  )
+                }
+                aria-label="Seek"
+              />
+              <span className="clipify-time">{displayDurationLabel}</span>
+            </div>
+            {!clipBounds && (
+              <p className="clipify-marker-hint">
+                Press <kbd>M</kbd> to mark{" "}
+                {pendingStartMs === null
+                  ? "start"
+                  : `end (start at ${formatTime(pendingStartMs)})`}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {showExportModal && (
+        <div
+          className="clipify-modal-overlay"
+          onClick={closeExportModal}
+          role="presentation"
+        >
+          <div
+            className="clipify-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="clipify-export-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="clipify-modal-header">
+              <h2 id="clipify-export-modal-title">Export to Spotify</h2>
+              <button
+                type="button"
+                className="clipify-modal-close"
+                onClick={closeExportModal}
+                disabled={exportingPlaylist}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <form
+              className="clipify-modal-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleExportPlaylist();
+              }}
+            >
+              <p className="clipify-modal-description">
+                Export {clipCount} clip{clipCount === 1 ? "" : "s"} to a new
+                private Spotify playlist.
+              </p>
+              <label className="clipify-export-label">
+                Playlist name
+                <input
+                  type="text"
+                  className="clipify-export-input"
+                  value={exportPlaylistName}
+                  onChange={(event) => setExportPlaylistName(event.target.value)}
+                  disabled={exportingPlaylist}
+                  maxLength={98}
+                  autoFocus
+                />
+              </label>
+              <div className="clipify-modal-actions">
+                <button
+                  type="button"
+                  className="clipify-btn clipify-btn--secondary"
+                  onClick={closeExportModal}
+                  disabled={exportingPlaylist}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="clipify-btn clipify-btn--spotify clipify-modal-submit"
+                  disabled={exportingPlaylist}
+                >
+                  {exportingPlaylist ? "Creating playlist…" : "Create playlist"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

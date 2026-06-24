@@ -5,6 +5,10 @@
   padding: 1.5rem 0 2.5rem;
 }
 
+.clipify-page--has-player {
+  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 .clipify-header {
   margin-bottom: 1.5rem;
 }
@@ -37,6 +41,115 @@
 .clipify-header-row h1 {
   margin: 0;
   font-size: 2rem;
+}
+
+.clipify-header-export-btn {
+  width: auto;
+  white-space: nowrap;
+}
+
+.clipify-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.65);
+}
+
+.clipify-modal {
+  width: min(100%, 440px);
+  border-radius: 10px;
+  background-color: #1a1e24;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.clipify-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #2a3038;
+}
+
+.clipify-modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #fff;
+}
+
+.clipify-modal-close {
+  border: none;
+  background: none;
+  color: #888;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+}
+
+.clipify-modal-close:hover:not(:disabled) {
+  color: #fff;
+}
+
+.clipify-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.clipify-modal-form {
+  padding: 1.25rem;
+}
+
+.clipify-modal-description {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #b0b8c4;
+  line-height: 1.45;
+}
+
+.clipify-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.clipify-modal-submit {
+  width: auto;
+}
+
+.clipify-export-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #b0b8c4;
+}
+
+.clipify-export-input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #373d48;
+  border-radius: 6px;
+  background-color: #14181e;
+  color: #fff;
+  font-size: 0.95rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.clipify-export-input:focus {
+  outline: none;
+  border-color: #1db954;
+}
+
+.clipify-export-input:disabled {
+  opacity: 0.6;
 }
 
 .clipify-tabs {
@@ -372,11 +485,30 @@
 }
 
 .clipify-now-playing {
-  background-color: #1a1e24;
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  background-color: #14181e;
+  border-top: 1px solid #2a3038;
+  padding: 0.85rem clamp(1rem, 3vw, 2.5rem);
+  padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.clipify-now-playing-info {
+  flex: 0 1 280px;
+  min-width: 0;
+}
+
+.clipify-now-playing-controls {
+  flex: 1 1 320px;
+  min-width: 0;
 }
 
 .clipify-now-playing-label {
@@ -392,12 +524,18 @@
   font-size: 1.1rem;
   font-weight: 600;
   color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clipify-now-playing-artist {
-  margin: 0.15rem 0 0.75rem;
+  margin: 0.15rem 0 0;
   font-size: 0.9rem;
   color: #b0b8c4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clipify-scrubber {
@@ -445,7 +583,7 @@
 }
 
 .clipify-marker-hint {
-  margin: 0.75rem 0 0;
+  margin: 0.35rem 0 0;
   font-size: 0.85rem;
   color: #888;
 }
@@ -512,6 +650,24 @@
 @media (max-width: 700px) {
   .clipify-page {
     padding: 0.75rem 0 2rem;
+  }
+
+  .clipify-page--has-player {
+    padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .clipify-now-playing {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .clipify-now-playing-info {
+    flex: none;
+  }
+
+  .clipify-now-playing-controls {
+    flex: none;
   }
 
   .clipify-header-row h1 {
