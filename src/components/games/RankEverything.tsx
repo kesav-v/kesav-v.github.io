@@ -178,8 +178,8 @@ const RankEverything: React.FC = () => {
   return (
     <div className="section wiki-page rank-page">
       <div className="rank-header">
-        <Link to="/games" className="rank-back-link">
-          ← Games
+        <Link to="/slop" className="rank-back-link">
+          ← Slop
         </Link>
         <div className="rank-header-row">
           <h2>Rank Everything</h2>
@@ -256,12 +256,11 @@ const RankEverything: React.FC = () => {
           )}
 
           {!searchingCategories && suggestions.length > 0 && (
-            <ul className="rank-category-suggestions" role="listbox">
+            <ul className="rank-category-suggestions">
               {suggestions.map((cat) => (
                 <li key={cat.title}>
                   <button
                     type="button"
-                    role="option"
                     className="rank-category-suggestion"
                     onClick={() => applyCategory(cat.title)}
                   >

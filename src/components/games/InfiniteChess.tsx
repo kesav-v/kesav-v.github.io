@@ -45,7 +45,7 @@ const InfiniteChess: React.FC = () => {
 
   const handleShareGame = async () => {
     if (!gameId) return;
-    const gameUrl = `${window.location.origin}${window.location.pathname}#/games/infinite-chess/${gameId}`;
+    const gameUrl = `${window.location.origin}${window.location.pathname}#/slop/infinite-chess/${gameId}`;
     try {
       await navigator.clipboard.writeText(gameUrl);
       setShareCopied(true);
@@ -108,7 +108,7 @@ const InfiniteChess: React.FC = () => {
     <div className="infinite-chess">
       {/* Close Button */}
       <button
-        onClick={() => navigate("/games")}
+        onClick={() => navigate("/slop")}
         className="infinite-chess__close-button"
       >
         ×

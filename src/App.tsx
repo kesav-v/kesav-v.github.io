@@ -5,13 +5,13 @@ import Home from "./components/Home";
 import Engineering from "./components/Engineering";
 import Chess from "./components/Chess";
 import Music from "./components/Music";
-import Games from "./components/Games";
+import Slop from "./components/Slop";
 import InfiniteChess from "./components/games/InfiniteChess";
 import RankEverything from "./components/games/RankEverything";
 
 function AppContent() {
   const location = useLocation();
-  const isChessboardActive = /^\/games\/infinite-chess(\/|$)/.test(
+  const isChessboardActive = /^\/slop\/infinite-chess(\/|$)/.test(
     location.pathname
   );
 
@@ -38,8 +38,8 @@ function AppContent() {
           <Link to="/music" className="nav-link">
             Music
           </Link>
-          <Link to="/games" className="nav-link">
-            Games
+          <Link to="/slop" className="nav-link">
+            Slop
           </Link>
         </nav>
       )}
@@ -49,11 +49,11 @@ function AppContent() {
             <Route path="/engineering" element={<Engineering />} />
             <Route path="/chess" element={<Chess />} />
             <Route path="/music" element={<Music />} />
-            <Route path="/games" element={<Games />} />
-            <Route path="/games/rank-everything" element={<RankEverything />} />
-            <Route path="/games/infinite-chess" element={<InfiniteChess />} />
+            <Route path="/slop" element={<Slop />} />
+            <Route path="/slop/rank-everything" element={<RankEverything />} />
+            <Route path="/slop/infinite-chess" element={<InfiniteChess />} />
             <Route
-              path="/games/infinite-chess/:gameId"
+              path="/slop/infinite-chess/:gameId"
               element={<InfiniteChess />}
             />
           </Routes>

@@ -69,7 +69,7 @@ export const useBoardState = () => {
 
   // Game Actions
   const handleNewGame = async () => {
-    navigate("/games/infinite-chess", { replace: true });
+    navigate("/slop/infinite-chess", { replace: true });
   };
 
   const handleCreateGameWithVisibility = async (visibility: "public" | "unlisted") => {
@@ -80,7 +80,7 @@ export const useBoardState = () => {
         // Mark that we created this game and are player1
         const sessionKey = `joined_game_${newGameId}`;
         sessionStorage.setItem(sessionKey, "player1");
-        navigate(`/games/infinite-chess/${newGameId}`, { replace: true });
+        navigate(`/slop/infinite-chess/${newGameId}`, { replace: true });
       } else {
         setUiState((prev) => ({
           ...prev,
@@ -102,7 +102,7 @@ export const useBoardState = () => {
     try {
       setUiState((prev) => ({ ...prev, isLoading: true, error: null }));
       // First navigate to the game
-      navigate(`/games/infinite-chess/${gameIdToJoin}`, { replace: true });
+      navigate(`/slop/infinite-chess/${gameIdToJoin}`, { replace: true });
       // Then join the game
       const result = await gameApi.joinGame(gameIdToJoin);
       if (result?.success && result.playerId) {
