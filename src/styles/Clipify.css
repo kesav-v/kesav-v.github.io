@@ -1,0 +1,538 @@
+.clipify-page {
+  max-width: none;
+  width: 100%;
+  text-align: left;
+  padding: 1.5rem 0 2.5rem;
+}
+
+.clipify-header {
+  margin-bottom: 1.5rem;
+}
+
+.clipify-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.clipify-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.clipify-export-success {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #a8e6cf;
+}
+
+.clipify-export-success a {
+  color: #61dafb;
+}
+
+.clipify-header-row h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.clipify-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.clipify-tab {
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: #373d48;
+  color: #b0b8c4;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.clipify-tab:hover {
+  color: #fff;
+}
+
+.clipify-tab--active {
+  background-color: #1db954;
+  color: #fff;
+}
+
+.clipify-playlists-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.clipify-playlist-accordion {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.clipify-accordion-item {
+  border-radius: 8px;
+  background-color: #1a1e24;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.clipify-accordion-item--expanded {
+  outline: 1px solid #373d48;
+}
+
+.clipify-accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: none;
+  background: none;
+  color: #d4d8de;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.clipify-accordion-header:hover {
+  background-color: #222831;
+}
+
+.clipify-accordion-chevron {
+  flex-shrink: 0;
+  width: 1rem;
+  font-size: 0.7rem;
+  color: #888;
+  text-align: center;
+}
+
+.clipify-accordion-panel {
+  border-top: 1px solid #2a3038;
+  padding: 0 0 0.75rem;
+}
+
+.clipify-accordion-panel .clipify-loading,
+.clipify-accordion-panel .clipify-empty {
+  margin: 0.75rem 1rem 0;
+}
+
+.clipify-table-wrap--nested {
+  margin: 0.75rem 1rem 0;
+  padding: 0.75rem 1rem 1rem;
+  box-shadow: none;
+  background-color: #14181e;
+}
+
+.clipify-playlist-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.clipify-playlist-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #1a1e24;
+  color: #d4d8de;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
+}
+
+.clipify-playlist-item:hover {
+  background-color: #222831;
+}
+
+.clipify-playlist-item--active {
+  outline: 2px solid #1db954;
+}
+
+.clipify-playlist-item-name {
+  font-weight: 600;
+  color: #fff;
+}
+
+.clipify-playlist-item-meta {
+  font-size: 0.85rem;
+  color: #888;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.clipify-accordion-header .clipify-playlist-item-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.clipify-now-playing-clip {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #a8e6cf;
+  font-variant-numeric: tabular-nums;
+}
+
+.clipify-account {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: #b0b8c4;
+  line-height: 1.45;
+}
+
+.clipify-account code {
+  color: #61dafb;
+  font-size: 0.85rem;
+}
+
+.clipify-account--muted {
+  color: #888;
+}
+
+.clipify-intro {
+  color: #b0b8c4;
+  font-size: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.clipify-login {
+  background-color: #1a1e24;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-width: 420px;
+}
+
+.clipify-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 0.7rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.clipify-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.clipify-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.clipify-btn--spotify {
+  background-color: #1db954;
+  color: #fff;
+  width: 100%;
+}
+
+.clipify-btn--spotify:hover:not(:disabled) {
+  background-color: #1ed760;
+}
+
+.clipify-btn--secondary {
+  background-color: #373d48;
+  color: #fff;
+}
+
+.clipify-play-error {
+  margin-bottom: 1rem;
+}
+
+.clipify-play-error .wiki-error {
+  margin-bottom: 0.75rem;
+}
+
+.clipify-loading-wrap {
+  max-width: 420px;
+  margin: 0 auto 1.5rem;
+}
+
+.clipify-loading {
+  color: #b0b8c4;
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.clipify-load-progress {
+  height: 8px;
+  border-radius: 4px;
+  background-color: #373d48;
+  overflow: hidden;
+}
+
+.clipify-load-progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  background-color: #1db954;
+  transition: width 0.25s ease;
+}
+
+.clipify-count {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: #888;
+}
+
+.clipify-table-wrap {
+  background-color: #1a1e24;
+  border-radius: 8px;
+  padding: 1rem 1.25rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow-x: auto;
+}
+
+.clipify-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.clipify-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.clipify-table th {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  background-color: #14181e;
+  color: #61dafb;
+  font-weight: 600;
+  border-bottom: 2px solid #373d48;
+  white-space: nowrap;
+}
+
+.clipify-table th:first-child,
+.clipify-table td:first-child {
+  width: 3rem;
+  text-align: right;
+  color: #888;
+}
+
+.clipify-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #2a3038;
+  color: #d4d8de;
+  vertical-align: top;
+}
+
+.clipify-table tbody tr:hover {
+  background-color: #222831;
+}
+
+.clipify-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clipify-table .clipify-title {
+  color: #fff;
+  font-weight: 500;
+}
+
+.clipify-table .clipify-artists {
+  color: #b0b8c4;
+}
+
+.clipify-table .clipify-date {
+  color: #888;
+  white-space: nowrap;
+}
+
+.clipify-empty {
+  color: #888;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.clipify-now-playing {
+  background-color: #1a1e24;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clipify-now-playing-label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.clipify-now-playing-title {
+  margin: 0.25rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.clipify-now-playing-artist {
+  margin: 0.15rem 0 0.75rem;
+  font-size: 0.9rem;
+  color: #b0b8c4;
+}
+
+.clipify-scrubber {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clipify-time {
+  font-size: 0.85rem;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5rem;
+}
+
+.clipify-time:last-child {
+  text-align: right;
+}
+
+.clipify-scrubber-input {
+  flex: 1;
+  height: 6px;
+  appearance: none;
+  border-radius: 3px;
+  background: #373d48;
+  cursor: pointer;
+}
+
+.clipify-scrubber-input::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1db954;
+  cursor: pointer;
+}
+
+.clipify-scrubber-input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: #1db954;
+  cursor: pointer;
+}
+
+.clipify-marker-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.clipify-marker-hint kbd {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background-color: #373d48;
+  color: #d4d8de;
+  font-size: 0.8rem;
+  font-family: inherit;
+}
+
+.clipify-play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: #373d48;
+  color: #fff;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.clipify-play-btn:hover {
+  background-color: #1db954;
+  transform: scale(1.05);
+}
+
+.clipify-play-btn--active {
+  background-color: #1db954;
+}
+
+.clipify-row--active {
+  background-color: #222831;
+}
+
+.clipify-markers {
+  min-width: 6rem;
+}
+
+.clipify-markers-empty {
+  color: #555;
+}
+
+.clipify-marker-chip {
+  display: inline-block;
+  margin: 0.15rem 0.35rem 0.15rem 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background-color: #2a4035;
+  color: #a8e6cf;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .clipify-page {
+    padding: 0.75rem 0 2rem;
+  }
+
+  .clipify-header-row h1 {
+    font-size: 1.5rem;
+  }
+
+  .clipify-table {
+    font-size: 0.85rem;
+  }
+
+  .clipify-table th,
+  .clipify-table td {
+    padding: 0.5rem 0.45rem;
+  }
+
+  .clipify-table th:nth-child(5),
+  .clipify-table td:nth-child(5) {
+    display: none;
+  }
+
+  .clipify-scrubber {
+    gap: 0.5rem;
+  }
+}

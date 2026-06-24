@@ -18,6 +18,13 @@ const Slop: React.FC = () => {
       path: "/slop/rank-everything",
       comingSoon: false,
     },
+    {
+      title: "Clipify",
+      description:
+        "Log in with Spotify and view all of your liked songs in a plain HTML table.",
+      path: "/slop/clipify",
+      comingSoon: false,
+    },
   ];
 
   return (

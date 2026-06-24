@@ -8,12 +8,16 @@ import Music from "./components/Music";
 import Slop from "./components/Slop";
 import InfiniteChess from "./components/games/InfiniteChess";
 import RankEverything from "./components/games/RankEverything";
+import Clipify from "./components/games/Clipify";
+import SpotifyOAuthHandler from "./components/SpotifyOAuthHandler";
+import { hasSpotifyCallbackParams } from "./lib/spotifyAuth";
 
 function AppContent() {
   const location = useLocation();
   const isChessboardActive = /^\/slop\/infinite-chess(\/|$)/.test(
     location.pathname
   );
+  const isOAuthCallback = hasSpotifyCallbackParams();
 
   useEffect(() => {
     document.body.classList.toggle("scroll-locked", isChessboardActive);
@@ -24,6 +28,12 @@ function AppContent() {
 
   return (
     <div className={`App ${isChessboardActive ? "chessboard-active" : ""}`}>
+      {isOAuthCallback ? (
+        <main className="main-content">
+          <SpotifyOAuthHandler />
+        </main>
+      ) : (
+        <>
       {!isChessboardActive && (
         <nav className="nav-bar">
           <Link to="/" className="nav-link">
@@ -51,6 +61,7 @@ function AppContent() {
             <Route path="/music" element={<Music />} />
             <Route path="/slop" element={<Slop />} />
             <Route path="/slop/rank-everything" element={<RankEverything />} />
+            <Route path="/slop/clipify" element={<Clipify />} />
             <Route path="/slop/infinite-chess" element={<InfiniteChess />} />
             <Route
               path="/slop/infinite-chess/:gameId"
@@ -58,6 +69,8 @@ function AppContent() {
             />
           </Routes>
         </main>
+      </>
+      )}
       </div>
     );
 }

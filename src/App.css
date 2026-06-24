@@ -245,6 +245,14 @@ p {
   padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+.main-content:has(.clipify-page) {
+  max-width: none;
+  width: 100%;
+  padding-left: clamp(1rem, 3vw, 2.5rem);
+  padding-right: clamp(1rem, 3vw, 2.5rem);
+  box-sizing: border-box;
+}
+
 .rank-header {
   margin-bottom: 1rem;
 }
