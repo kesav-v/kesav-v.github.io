@@ -209,7 +209,7 @@ export async function getAccessToken(): Promise<string> {
 }
 
 export function getClipifyUrl(): string {
-  return `${getOriginForRedirect()}/#/slop/clipify`;
+  return `${getOriginForRedirect()}/slop/clipify`;
 }
 
 export function hasSpotifyCallbackParams(): boolean {
