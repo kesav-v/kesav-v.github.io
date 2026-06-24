@@ -30,7 +30,10 @@ const Slop: React.FC = () => {
   return (
     <div className="section">
       <h1>Slop</h1>
-      <p>Check out these interactive games I've implemented:</p>
+      <p>
+        Random concepts I've thought of and asked AI to build for me.
+        I cannot in good faith vouch for the quality of anything you might find here.
+      </p>
       <div className="games-grid">
         {games.map((game) => (
           <GameCard

@@ -5,10 +5,8 @@ const Engineering: React.FC = () => {
     <div className="section">
       <h2>Engineering</h2>
       <p>
-        Here you'll find information about my engineering projects and
-        experience.
+        I currently work at <a style={{color: "#ffffff"}} href="https://www.appliedintuition.com/">Applied Intuition</a> helping build the next generation of AI for physical systems.
       </p>
-      {/* Add your engineering content here */}
     </div>
   );
 };
