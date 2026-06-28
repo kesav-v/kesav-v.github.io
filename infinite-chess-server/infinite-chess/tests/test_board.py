@@ -903,6 +903,26 @@ class TestKingCaptureAndStones:
         assert captured is not None
         assert captured.type == "rook"
 
+    def test_own_stones_can_be_captured(self):
+        board = Board()
+        p1, _ = board.spawn_player()
+
+        stone_pos = Position(0, 4)
+        board.pieces[stone_pos] = Piece("stone", p1, stone_pos)
+        board.players[p1].piece_positions.append(stone_pos)
+
+        attacker_pos = Position(0, 1)
+        board.pieces[attacker_pos] = Piece("rook", p1, attacker_pos)
+        board.players[p1].piece_positions.append(attacker_pos)
+
+        moves = board.get_legal_moves(p1)
+        assert stone_pos in moves.get(attacker_pos, [])
+
+        result = board.move_piece(attacker_pos, stone_pos, p1)
+        assert result["success"] is True
+        assert board.get_piece(stone_pos) is not None
+        assert board.get_piece(stone_pos).type == "rook"
+
     def test_stones_block_movement(self):
         board = Board()
         board.spawn_player()

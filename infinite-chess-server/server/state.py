@@ -293,6 +293,9 @@ class GameState:
         if not piece:
             return {"success": False, "error": "No piece at that position"}
 
+        if piece.type == "stone":
+            return {"success": False, "error": "Stones cannot be selected"}
+
         all_moves = self.board.get_legal_moves(piece.player_id)
         legal_moves = all_moves.get(pos, [])
 

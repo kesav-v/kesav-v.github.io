@@ -249,7 +249,11 @@ class Board:
 
         # Crazyhouse: credit capture to moving player (no kings)
         captured = self.get_piece(to_pos)
-        if captured and captured.player_id != player_id and captured.type != "king":
+        if (
+            captured
+            and captured.player_id != player_id
+            and captured.type not in ("king", "stone")
+        ):
             if player_id not in self.captured_banks:
                 self.captured_banks[player_id] = []
             self.captured_banks[player_id].append(captured.type)
@@ -406,6 +410,12 @@ class Board:
                 pieces.append(piece)
         return pieces
 
+    def _can_capture_target(self, mover: Piece, target: Piece) -> bool:
+        """Stones can be captured by any player, including their former owner."""
+        if target.type == "stone":
+            return True
+        return target.player_id != mover.player_id
+
     def _get_knight_moves(self, piece: Piece) -> list[Position]:
         """Calculate legal moves for a knight."""
         moves: list[Position] = []
@@ -426,7 +436,7 @@ class Board:
             new_pos = Position(new_row, new_col)
 
             target_piece = self.get_piece(new_pos)
-            if target_piece is None or target_piece.player_id != piece.player_id:
+            if target_piece is None or self._can_capture_target(piece, target_piece):
                 moves.append(new_pos)
 
         return moves
@@ -446,7 +456,7 @@ class Board:
                 target_piece = self.get_piece(new_pos)
                 if target_piece is None:
                     moves.append(new_pos)
-                elif target_piece.player_id != piece.player_id:
+                elif self._can_capture_target(piece, target_piece):
                     moves.append(new_pos)
                     break
                 else:
@@ -508,9 +518,8 @@ class Board:
                     piece.position.row + row_dir, piece.position.col + col_offset
                 )
                 target_piece = self.get_piece(capture_pos)
-                if (
-                    target_piece is not None
-                    and target_piece.player_id != piece.player_id
+                if target_piece is not None and self._can_capture_target(
+                    piece, target_piece
                 ):
                     moves.append(capture_pos)
         else:  # horizontal movement
@@ -519,9 +528,8 @@ class Board:
                     piece.position.row + row_offset, piece.position.col + col_dir
                 )
                 target_piece = self.get_piece(capture_pos)
-                if (
-                    target_piece is not None
-                    and target_piece.player_id != piece.player_id
+                if target_piece is not None and self._can_capture_target(
+                    piece, target_piece
                 ):
                     moves.append(capture_pos)
 

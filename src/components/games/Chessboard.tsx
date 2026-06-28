@@ -117,7 +117,8 @@ const Chessboard: React.FC<ChessboardProps> = ({
         targetPosition = king.position;
       } else if (pieces.length > 0) {
         const activePlayerPiece = pieces.find(
-          (piece) => piece.player_id === activePlayerId
+          (piece) =>
+            piece.player_id === activePlayerId && piece.type !== "stone"
         );
         if (activePlayerPiece) {
           targetPosition = activePlayerPiece.position;
@@ -254,7 +255,10 @@ const Chessboard: React.FC<ChessboardProps> = ({
   const attemptSelect = async (row: number, col: number) => {
     const result = await onSelect(row, col);
     if (result.success && result.piece) {
-      if (result.piece.player_id === activePlayerId) {
+      if (
+        result.piece.player_id === activePlayerId &&
+        result.piece.type !== "stone"
+      ) {
         setSelectedPiece(normalizePiece(result.piece));
         setLegalDestinations(result.legal_moves ?? []);
       } else {
@@ -300,7 +304,10 @@ const Chessboard: React.FC<ChessboardProps> = ({
     const squares = [];
     const bounds = getVisibleBounds();
     const activePlayerPositions = pieces
-      .filter((piece) => piece.player_id === activePlayerId)
+      .filter(
+        (piece) =>
+          piece.player_id === activePlayerId && piece.type !== "stone"
+      )
       .map((piece) => piece.position);
 
     let borderBounds: {
@@ -333,14 +340,16 @@ const Chessboard: React.FC<ChessboardProps> = ({
           legalDestinations.some(
             (destination) => destination.row === row && destination.col === col
           );
+        const canSelectOwnPiece =
+          !selectedPiece &&
+          !selectedBankPiece &&
+          piece?.player_id === activePlayerId &&
+          piece?.type !== "stone";
         const isClickable =
           isMyTurn &&
-          piece?.type !== "stone" &&
           (!!isLegalMove ||
             (!!selectedBankPiece && !piece) ||
-            (!selectedPiece &&
-              !selectedBankPiece &&
-              piece?.player_id === activePlayerId));
+            canSelectOwnPiece);
 
         const isOutsideBorder = borderBounds
           ? row < borderBounds.minRow ||
@@ -381,7 +390,10 @@ const Chessboard: React.FC<ChessboardProps> = ({
           key={activePlayerId}
           playerId={activePlayerId}
           positions={pieces
-            .filter((piece) => piece.player_id === activePlayerId)
+            .filter(
+              (piece) =>
+                piece.player_id === activePlayerId && piece.type !== "stone"
+            )
             .map((piece) => piece.position)}
           squareSize={squareSize}
           getPlayerColor={getPlayerColor}

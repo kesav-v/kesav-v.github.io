@@ -19,8 +19,9 @@ const InfiniteChess: React.FC = () => {
     turnSecondsRemaining,
     turnLengthSeconds,
     bank,
+    selectedBankIndex,
+    setSelectedBankIndex,
     selectedBankPiece,
-    setSelectedBankPiece,
     isConnected,
     isAuthenticated,
     isLoading,
@@ -188,13 +189,13 @@ const InfiniteChess: React.FC = () => {
                   key={`${pieceType}-${index}`}
                   type="button"
                   className={`infinite-chess__bank-piece${
-                    selectedBankPiece === pieceType
+                    selectedBankIndex === index
                       ? " infinite-chess__bank-piece--selected"
                       : ""
                   }`}
                   onClick={() =>
-                    setSelectedBankPiece(
-                      selectedBankPiece === pieceType ? null : pieceType
+                    setSelectedBankIndex(
+                      selectedBankIndex === index ? null : index
                     )
                   }
                   title={`Drop ${pieceType}`}

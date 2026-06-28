@@ -39,9 +39,9 @@ export const useBoardState = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [selectedBankPiece, setSelectedBankPiece] = useState<
-    Piece["type"] | null
-  >(null);
+  const [selectedBankIndex, setSelectedBankIndex] = useState<number | null>(
+    null
+  );
 
   const getPlayerColor = useCallback(
     (playerId: string): string => {
@@ -65,6 +65,9 @@ export const useBoardState = () => {
 
   const bank = myPlayer?.bank ?? [];
 
+  const selectedBankPiece =
+    selectedBankIndex !== null ? bank[selectedBankIndex] ?? null : null;
+
   useEffect(() => {
     if (!turn) {
       setTurnSecondsRemaining(0);
@@ -83,9 +86,13 @@ export const useBoardState = () => {
 
   useEffect(() => {
     if (!isMyTurn) {
-      setSelectedBankPiece(null);
+      setSelectedBankIndex(null);
     }
   }, [isMyTurn]);
+
+  useEffect(() => {
+    setSelectedBankIndex(null);
+  }, [turn?.player_id, bank.length]);
 
   useEffect(() => {
     const client = new ChessWebSocketClient(getWebSocketUrl());
@@ -143,7 +150,7 @@ export const useBoardState = () => {
   }, []);
 
   const startNewSession = useCallback(() => {
-    setSelectedBankPiece(null);
+    setSelectedBankIndex(null);
     setStatusMessage(null);
     setError(null);
     clientRef.current?.resetConnection();
@@ -200,7 +207,7 @@ export const useBoardState = () => {
         setStatusMessage(result.error);
       } else if (result.success) {
         setStatusMessage(null);
-        setSelectedBankPiece(null);
+        setSelectedBankIndex(null);
       }
 
       return result;
@@ -220,8 +227,9 @@ export const useBoardState = () => {
     turnSecondsRemaining,
     turnLengthSeconds: turn?.turn_seconds ?? 10,
     bank,
+    selectedBankIndex,
+    setSelectedBankIndex,
     selectedBankPiece,
-    setSelectedBankPiece,
     isConnected,
     isAuthenticated,
     isLoading,
