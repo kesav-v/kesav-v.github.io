@@ -8,6 +8,7 @@ Multiplayer server for [infinite-chess](https://github.com/kesav-v/infinite-ches
 cd infinite-chess-server
 python -m venv .venv
 source .venv/bin/activate
+pip install -e ./infinite-chess
 pip install -r requirements.txt
 ```
 

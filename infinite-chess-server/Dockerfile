@@ -4,11 +4,9 @@ WORKDIR /app
 
 RUN useradd --create-home --shell /bin/bash app
 
-COPY infinite-chess/ /tmp/infinite-chess/
-RUN pip install --no-cache-dir /tmp/infinite-chess/ && rm -rf /tmp/infinite-chess/
-
+COPY infinite-chess/ infinite-chess/
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -e ./infinite-chess/ && pip install --no-cache-dir -r requirements.txt
 
 COPY server/ server/
 COPY static/ static/
