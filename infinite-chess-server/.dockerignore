@@ -1,0 +1,16 @@
+.venv/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ruff_cache/
+**/.git/
+**/.cursor/
+*.board.json
+.env
+.gitignore
+README.md
+API.md
+tests/
+requirements-dev.txt
+world.board.json

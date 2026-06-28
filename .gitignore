@@ -27,3 +27,12 @@ server/__pycache__
 server/chess_games.db
 server/*.db
 
+# infinite-chess-server (Python)
+infinite-chess-server/**/.venv/
+infinite-chess-server/**/__pycache__/
+infinite-chess-server/**/.pytest_cache/
+infinite-chess-server/**/.ruff_cache/
+infinite-chess-server/**/*.egg-info/
+infinite-chess-server/**/*.board.json
+infinite-chess-server/.env
+

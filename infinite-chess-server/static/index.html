@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Chess</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #e94560;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7280;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        button {
+            background: #0f3460;
+            color: #eee;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #e94560;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        #board-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        #board-container:active {
+            cursor: grabbing;
+        }
+
+        #board {
+            position: absolute;
+            display: grid;
+            user-select: none;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .cell.light { background: #2d2d44; }
+        .cell.dark { background: #1e1e30; }
+
+        .cell:hover {
+            outline: 2px solid #e94560;
+            outline-offset: -2px;
+            z-index: 1;
+        }
+
+        .cell.selected {
+            background: #e9456080 !important;
+        }
+
+        .cell.legal-move { position: relative; }
+
+        .cell.legal-move::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+
+        .cell.legal-move.has-piece::after {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: 3px solid #4ade80;
+        }
+
+        .cell.pawn-drop-rank {
+            box-shadow: inset 0 0 0 2px #facc15;
+            background: rgba(250, 204, 21, 0.15) !important;
+        }
+
+        .cell.legal-drop {
+            position: relative;
+            box-shadow: inset 0 0 0 2px #22d3ee;
+            background: rgba(34, 211, 238, 0.2) !important;
+        }
+
+        .cell.legal-drop::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 50%;
+            top: 50%;
+            margin: -10px 0 0 -10px;
+            border: 2px dashed #22d3ee;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        .bank-pieces {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-top: 0.25rem;
+        }
+
+        .bank-piece {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            background: #0f3460;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .bank-piece:hover {
+            background: #1e3a5f;
+        }
+
+        .bank-piece.selected {
+            border-color: #e94560;
+            background: #2d1f2e;
+        }
+
+        .piece {
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+
+        #sidebar {
+            width: 280px;
+            background: #16213e;
+            padding: 1.5rem;
+            border-left: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .panel {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .panel h3 {
+            color: #e94560;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .info-label { color: #888; }
+
+        .player-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            background: #0f3460;
+            font-size: 0.9rem;
+        }
+
+        .player-item.self {
+            border: 1px solid #e94560;
+        }
+
+        .player-item.dead {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .player-item.offline {
+            opacity: 0.6;
+        }
+
+        .player-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .online-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-left: auto;
+        }
+
+        .online-indicator.online { background: #4ade80; }
+        .online-indicator.offline { background: #6b7280; }
+
+        .selection-info { font-size: 0.9rem; }
+
+        #status-bar {
+            background: #0f3460;
+            padding: 0.75rem 2rem;
+            font-size: 0.9rem;
+            border-top: 1px solid #16213e;
+        }
+
+        .keyboard-hint {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .keyboard-hint p { margin-bottom: 0.25rem; }
+
+        .keyboard-hint kbd {
+            background: #0f3460;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: #16213e;
+            padding: 2rem;
+            border-radius: 8px;
+            min-width: 300px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 1rem;
+            color: #e94560;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #0f3460;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #eee;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .promotion-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .promotion-btn {
+            font-size: 2rem;
+            padding: 1rem;
+            background: #1a1a2e;
+        }
+
+        .promotion-btn:hover { background: #e94560; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Infinite Chess</h1>
+        <div class="header-info">
+            <div class="connection-status">
+                <span class="status-dot" id="conn-dot"></span>
+                <span id="conn-text">Disconnected</span>
+            </div>
+            <div class="controls">
+                <button id="btn-center">Center (C)</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div id="board-container">
+            <div id="board"></div>
+        </div>
+        <div id="sidebar">
+            <div class="panel">
+                <h3>You</h3>
+                <div id="self-info" class="info-row">
+                    <span class="info-label">Not joined yet</span>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>View</h3>
+                <div class="info-row">
+                    <span class="info-label">Camera:</span>
+                    <span id="camera-pos">(0, 0)</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cursor:</span>
+                    <span id="cursor-pos">-</span>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Players</h3>
+                <div id="player-list" class="player-list">
+                    <p style="color: #666; font-size: 0.9rem;">No players yet.</p>
+                </div>
+            </div>
+            <div class="panel" id="panel-bank">
+                <h3>Your bank (Crazyhouse)</h3>
+                <p style="color: #888; font-size: 0.8rem; margin-bottom: 0.25rem;">Click a piece to drop it on the board.</p>
+                <div id="bank-pieces" class="bank-pieces">
+                    <span style="color: #666; font-size: 0.9rem;">No captures yet.</span>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Selection</h3>
+                <div id="selection-info" class="selection-info">
+                    <p style="color: #666;">Click your piece to select it.</p>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Controls</h3>
+                <div class="keyboard-hint">
+                    <p><kbd>WASD</kbd> / <kbd>Arrows</kbd> - Pan view</p>
+                    <p><kbd>Click</kbd> - Select / Move / Drop</p>
+                    <p><kbd>Scroll</kbd> - Pan view</p>
+                    <p><kbd>Drag</kbd> - Pan view</p>
+                    <p><kbd>C</kbd> - Center on your pieces</p>
+                    <p><kbd>Esc</kbd> - Clear selection</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="status-bar">Connecting...</div>
+
+    <div id="modal-join" class="modal active">
+        <div class="modal-content">
+            <h2>Join Infinite Chess</h2>
+            <input type="text" id="join-name" placeholder="Enter your name" autofocus>
+            <div class="modal-buttons">
+                <button id="join-confirm">Join</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-promotion" class="modal">
+        <div class="modal-content">
+            <h2>Promote Pawn</h2>
+            <div class="promotion-options">
+                <button class="promotion-btn" data-piece="queen">&#9813;</button>
+                <button class="promotion-btn" data-piece="rook">&#9814;</button>
+                <button class="promotion-btn" data-piece="bishop">&#9815;</button>
+                <button class="promotion-btn" data-piece="knight">&#9816;</button>
+            </div>
+            <div class="modal-buttons">
+                <button id="promotion-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PIECE_SYMBOLS = {
+            king: '\u2654', queen: '\u2655', rook: '\u2656',
+            bishop: '\u2657', knight: '\u2658', pawn: '\u2659',
+            stone: '\u25AA',
+        };
+
+        const PLAYER_COLORS = ['#ffffff', '#22d3ee', '#facc15', '#4ade80', '#c084fc', '#f87171', '#60a5fa'];
+
+        const state = {
+            pieces: [],
+            players: [],
+            myPlayerId: null,
+            myToken: null,
+            cameraRow: 0,
+            cameraCol: 0,
+            selectedPos: null,
+            selectedPiece: null,
+            legalMoves: [],
+            viewRows: 25,
+            viewCols: 35,
+            pendingPromotion: null,
+            selectedBankPiece: null,
+        };
+
+        let ws = null;
+        const boardEl = document.getElementById('board');
+        const boardContainer = document.getElementById('board-container');
+
+        // --- WebSocket ---
+
+        function connect() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${location.host}/ws`);
+
+            ws.onopen = () => {
+                setConnected(true);
+                const savedToken = localStorage.getItem('chess_token');
+                if (savedToken) {
+                    ws.send(JSON.stringify({ action: 'reconnect', token: savedToken }));
+                }
+            };
+
+            ws.onmessage = (e) => {
+                const msg = JSON.parse(e.data);
+                handleMessage(msg);
+            };
+
+            ws.onclose = () => {
+                setConnected(false);
+                setStatus('Disconnected. Reconnecting...');
+                setTimeout(connect, 2000);
+            };
+
+            ws.onerror = () => {
+                ws.close();
+            };
+        }
+
+        function send(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            }
+        }
+
+        function setConnected(connected) {
+            const dot = document.getElementById('conn-dot');
+            const text = document.getElementById('conn-text');
+            dot.className = 'status-dot' + (connected ? ' connected' : '');
+            text.textContent = connected ? 'Connected' : 'Disconnected';
+        }
+
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'joined':
+                    state.myPlayerId = msg.player_id;
+                    state.myToken = msg.token;
+                    localStorage.setItem('chess_token', msg.token);
+                    state.cameraRow = msg.king_pos.row;
+                    state.cameraCol = msg.king_pos.col;
+                    document.getElementById('modal-join').classList.remove('active');
+                    updateSelfInfo(msg.display_name);
+                    setStatus(`Joined as ${msg.display_name} (${msg.player_id})`);
+                    send({ action: 'state' });
+                    break;
+
+                case 'reconnected':
+                    state.myPlayerId = msg.player_id;
+                    document.getElementById('modal-join').classList.remove('active');
+                    updateSelfInfo(msg.display_name);
+                    setStatus(`Reconnected as ${msg.display_name} (${msg.player_id})`);
+                    send({ action: 'state' });
+                    break;
+
+                case 'state':
+                    state.pieces = msg.pieces;
+                    state.players = msg.players;
+                    if (state.myPlayerId && state.cameraRow === 0 && state.cameraCol === 0) {
+                        centerOnSelf();
+                    }
+                    render();
+                    break;
+
+                case 'selection':
+                    if (msg.success) {
+                        state.selectedPos = { row: msg.piece.row, col: msg.piece.col };
+                        state.selectedPiece = msg.piece;
+                        state.legalMoves = msg.legal_moves;
+                        setStatus(`Selected ${msg.piece.type} - ${msg.legal_moves.length} legal moves`);
+                    } else {
+                        setStatus(msg.error || 'Cannot select');
+                    }
+                    render();
+                    break;
+
+                case 'move_result':
+                    if (msg.success) {
+                        let status = `Move OK`;
+                        if (msg.spawned_pawn) status += ` | New pawn spawned`;
+                        setStatus(status);
+                        clearSelection();
+                        state.selectedBankPiece = null;
+                    } else if (msg.promotion_available) {
+                        document.getElementById('modal-promotion').classList.add('active');
+                    } else {
+                        setStatus(`Move failed: ${msg.error}`);
+                    }
+                    break;
+
+                case 'error':
+                    if (msg.error === 'Invalid token') {
+                        localStorage.removeItem('chess_token');
+                        document.getElementById('modal-join').classList.add('active');
+                        setStatus('Session expired. Please rejoin.');
+                    } else {
+                        setStatus(`Error: ${msg.error}`);
+                    }
+                    break;
+            }
+        }
+
+        // --- Rendering ---
+
+        function getPlayerIndex(playerId) {
+            return state.players.findIndex(p => p.id === playerId);
+        }
+
+        function getPlayerColor(playerId) {
+            const idx = getPlayerIndex(playerId);
+            return idx >= 0 ? PLAYER_COLORS[idx % PLAYER_COLORS.length] : '#6b7280';
+        }
+
+        function getMyBank() {
+            if (!state.myPlayerId) return [];
+            const p = state.players.find(x => x.id === state.myPlayerId);
+            return (p && Array.isArray(p.bank)) ? p.bank : [];
+        }
+
+        function getMyPawnDropRankInfo() {
+            if (!state.myPlayerId) return null;
+            const p = state.players.find(x => x.id === state.myPlayerId);
+            return (p && p.pawn_drop_rank_info) ? p.pawn_drop_rank_info : null;
+        }
+
+        function isValidDropSquare(row, col) {
+            if (!state.selectedBankPiece) return false;
+            const pieceMap = {};
+            for (const piece of state.pieces) {
+                pieceMap[`${piece.row},${piece.col}`] = true;
+            }
+            if (pieceMap[`${row},${col}`]) return false;
+            const info = getMyPawnDropRankInfo();
+            if (state.selectedBankPiece === 'pawn') {
+                if (!info) return false;
+                if (info.orientation === 'vertical') {
+                    return row === info.front_pawn_line || row === info.back_pawn_line;
+                } else {
+                    return col === info.front_pawn_line || col === info.back_pawn_line;
+                }
+            }
+            return true;
+        }
+
+        function render() {
+            const halfRows = Math.floor(state.viewRows / 2);
+            const halfCols = Math.floor(state.viewCols / 2);
+
+            boardEl.style.gridTemplateColumns = `repeat(${state.viewCols}, 40px)`;
+            boardEl.innerHTML = '';
+
+            const pieceMap = {};
+            for (const piece of state.pieces) {
+                pieceMap[`${piece.row},${piece.col}`] = piece;
+            }
+
+            const legalMoveSet = new Set(state.legalMoves.map(m => `${m.row},${m.col}`));
+            const inDropMode = !!state.selectedBankPiece;
+
+            for (let screenY = 0; screenY < state.viewRows; screenY++) {
+                for (let screenX = 0; screenX < state.viewCols; screenX++) {
+                    const boardRow = state.cameraRow - halfRows + screenY;
+                    const boardCol = state.cameraCol - halfCols + screenX;
+                    const key = `${boardRow},${boardCol}`;
+
+                    const cell = document.createElement('div');
+                    cell.className = 'cell ' + ((boardRow + boardCol) % 2 === 0 ? 'light' : 'dark');
+                    cell.dataset.row = boardRow;
+                    cell.dataset.col = boardCol;
+
+                    const piece = pieceMap[key];
+                    const isLegalMove = !inDropMode && legalMoveSet.has(key);
+                    const isSelected = state.selectedPos &&
+                        state.selectedPos.row === boardRow &&
+                        state.selectedPos.col === boardCol;
+                    const isPawnDropRank = inDropMode && state.selectedBankPiece === 'pawn' && getMyPawnDropRankInfo() && (
+                        (getMyPawnDropRankInfo().orientation === 'vertical' && (boardRow === getMyPawnDropRankInfo().front_pawn_line || boardRow === getMyPawnDropRankInfo().back_pawn_line)) ||
+                        (getMyPawnDropRankInfo().orientation === 'horizontal' && (boardCol === getMyPawnDropRankInfo().front_pawn_line || boardCol === getMyPawnDropRankInfo().back_pawn_line))
+                    );
+                    const isEmpty = !piece;
+                    const isLegalDrop = inDropMode && isEmpty && isValidDropSquare(boardRow, boardCol);
+
+                    if (isSelected) cell.classList.add('selected');
+                    if (isLegalMove) {
+                        cell.classList.add('legal-move');
+                        if (piece) cell.classList.add('has-piece');
+                    }
+                    if (isPawnDropRank && isEmpty) cell.classList.add('pawn-drop-rank');
+                    if (isLegalDrop) cell.classList.add('legal-drop');
+
+                    if (piece) {
+                        const pieceEl = document.createElement('span');
+                        pieceEl.className = 'piece';
+                        pieceEl.textContent = PIECE_SYMBOLS[piece.type] || '?';
+                        pieceEl.style.color = piece.type === 'stone'
+                            ? '#6b7280'
+                            : getPlayerColor(piece.player_id);
+                        cell.appendChild(pieceEl);
+                    }
+
+                    cell.addEventListener('click', () => handleCellClick(boardRow, boardCol));
+                    boardEl.appendChild(cell);
+                }
+            }
+
+            const containerRect = boardContainer.getBoundingClientRect();
+            const boardWidth = state.viewCols * 40;
+            const boardHeight = state.viewRows * 40;
+            boardEl.style.left = `${(containerRect.width - boardWidth) / 2}px`;
+            boardEl.style.top = `${(containerRect.height - boardHeight) / 2}px`;
+
+            updateBankUI();
+            updateUI();
+        }
+
+        function updateBankUI() {
+            const bank = getMyBank();
+            const container = document.getElementById('bank-pieces');
+            if (!container) return;
+            if (bank.length === 0) {
+                container.innerHTML = '<span style="color: #666; font-size: 0.9rem;">No captures yet.</span>';
+                return;
+            }
+            const myColor = getPlayerColor(state.myPlayerId);
+            container.innerHTML = bank.map((pieceType, i) => {
+                const sym = PIECE_SYMBOLS[pieceType] || '?';
+                const selected = state.selectedBankPiece === pieceType ? ' selected' : '';
+                return `<span class="bank-piece${selected}" data-piece-type="${pieceType}" title="Drop ${pieceType}">${sym}</span>`;
+            }).join('');
+            container.querySelectorAll('.bank-piece').forEach(el => {
+                el.addEventListener('click', () => {
+                    const pt = el.dataset.pieceType;
+                    state.selectedBankPiece = state.selectedBankPiece === pt ? null : pt;
+                    state.selectedPos = null;
+                    state.selectedPiece = null;
+                    state.legalMoves = [];
+                    setStatus(state.selectedBankPiece ? `Drop ${state.selectedBankPiece} - click a highlighted square` : 'Selection cleared');
+                    render();
+                });
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('camera-pos').textContent =
+                `(${state.cameraRow}, ${state.cameraCol})`;
+
+            const playerListEl = document.getElementById('player-list');
+            if (state.players.length === 0) {
+                playerListEl.innerHTML = '<p style="color: #666; font-size: 0.9rem;">No players yet.</p>';
+            } else {
+                playerListEl.innerHTML = state.players.map((p, idx) => {
+                    const isSelf = p.id === state.myPlayerId;
+                    const color = PLAYER_COLORS[idx % PLAYER_COLORS.length];
+                    const orient = p.orientation === 'vertical' ? 'V' : 'H';
+                    const classes = [
+                        'player-item',
+                        isSelf ? 'self' : '',
+                        !p.alive ? 'dead' : '',
+                        !p.connected ? 'offline' : '',
+                    ].filter(Boolean).join(' ');
+                    const onlineClass = p.connected ? 'online' : 'offline';
+                    const label = p.display_name || p.id;
+                    return `<div class="${classes}">
+                        <span class="player-dot" style="background: ${color}"></span>
+                        <span>${label} [${orient}]</span>
+                        <span class="online-indicator ${onlineClass}"></span>
+                    </div>`;
+                }).join('');
+            }
+
+            const selectionEl = document.getElementById('selection-info');
+            if (state.selectedBankPiece) {
+                selectionEl.innerHTML = `<p><strong>Drop ${state.selectedBankPiece}</strong></p><p style="color: #888;">Click a highlighted square on the board.</p><p style="color: #facc15; font-size: 0.85rem;">Yellow = pawn drop rank only</p>`;
+            } else if (state.selectedPiece) {
+                selectionEl.innerHTML = `
+                    <p><strong>${state.selectedPiece.type}</strong></p>
+                    <p>At: (${state.selectedPos.row}, ${state.selectedPos.col})</p>
+                    <p>${state.legalMoves.length} legal moves</p>
+                `;
+            } else {
+                selectionEl.innerHTML = '<p style="color: #666;">Click your piece to select it, or pick from bank to drop.</p>';
+            }
+        }
+
+        function updateSelfInfo(name) {
+            document.getElementById('self-info').innerHTML = `
+                <span class="info-label">Name:</span>
+                <span>${name}</span>
+            `;
+        }
+
+        function setStatus(msg) {
+            document.getElementById('status-bar').textContent = msg;
+        }
+
+        // --- Interaction ---
+
+        function handleCellClick(row, col) {
+            document.getElementById('cursor-pos').textContent = `(${row}, ${col})`;
+
+            if (state.selectedBankPiece && isValidDropSquare(row, col)) {
+                send({ action: 'drop', piece_type: state.selectedBankPiece, row, col });
+                state.selectedBankPiece = null;
+                setStatus('Dropping...');
+                render();
+                return;
+            }
+
+            if (state.legalMoves.some(m => m.row === row && m.col === col)) {
+                attemptMove(row, col);
+                return;
+            }
+
+            send({ action: 'select', row, col });
+        }
+
+        function attemptMove(toRow, toCol, promotion) {
+            if (!state.selectedPos) return;
+
+            const piece = state.pieces.find(
+                p => p.row === state.selectedPos.row && p.col === state.selectedPos.col
+            );
+            if (piece && piece.player_id !== state.myPlayerId) {
+                setStatus("Not your piece");
+                clearSelection();
+                render();
+                return;
+            }
+
+            state.pendingPromotion = { toRow, toCol };
+            send({
+                action: 'move',
+                from_row: state.selectedPos.row,
+                from_col: state.selectedPos.col,
+                to_row: toRow,
+                to_col: toCol,
+                promotion: promotion || null,
+            });
+        }
+
+        function clearSelection() {
+            state.selectedPos = null;
+            state.selectedPiece = null;
+            state.legalMoves = [];
+            state.selectedBankPiece = null;
+        }
+
+        function centerOnSelf() {
+            if (!state.myPlayerId) return;
+            const myPieces = state.pieces.filter(p => p.player_id === state.myPlayerId);
+            if (myPieces.length === 0) return;
+            state.cameraRow = Math.round(myPieces.reduce((s, p) => s + p.row, 0) / myPieces.length);
+            state.cameraCol = Math.round(myPieces.reduce((s, p) => s + p.col, 0) / myPieces.length);
+            render();
+        }
+
+        function panCamera(dRow, dCol) {
+            state.cameraRow += dRow;
+            state.cameraCol += dCol;
+            render();
+        }
+
+        // --- Keyboard ---
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+
+            switch (e.key.toLowerCase()) {
+                case 'w': case 'arrowup':    panCamera(-1, 0); break;
+                case 's': case 'arrowdown':  panCamera(1, 0); break;
+                case 'a': case 'arrowleft':  panCamera(0, -1); break;
+                case 'd': case 'arrowright': panCamera(0, 1); break;
+                case 'c': centerOnSelf(); break;
+                case 'escape':
+                    clearSelection();
+                    setStatus('Selection cleared');
+                    render();
+                    break;
+            }
+        });
+
+        // --- Mouse ---
+
+        boardContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const dRow = Math.sign(e.deltaY);
+            const dCol = Math.sign(e.deltaX);
+            panCamera(e.shiftKey ? 0 : dRow, e.shiftKey ? (dRow || dCol) : 0);
+        });
+
+        let isDragging = false;
+        let dragStartX, dragStartY, dragStartCamRow, dragStartCamCol;
+
+        boardContainer.addEventListener('mousedown', (e) => {
+            if (e.target === boardContainer || e.target === boardEl) {
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                dragStartCamRow = state.cameraRow;
+                dragStartCamCol = state.cameraCol;
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            state.cameraRow = dragStartCamRow - Math.round((e.clientY - dragStartY) / 40);
+            state.cameraCol = dragStartCamCol - Math.round((e.clientX - dragStartX) / 40);
+            render();
+        });
+
+        document.addEventListener('mouseup', () => { isDragging = false; });
+
+        // --- Join modal ---
+
+        function tryJoin() {
+            const name = document.getElementById('join-name').value.trim() || 'Anonymous';
+            send({ action: 'join', name });
+        }
+
+        document.getElementById('join-confirm').addEventListener('click', tryJoin);
+        document.getElementById('join-name').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') tryJoin();
+        });
+
+        // --- Promotion modal ---
+
+        document.querySelectorAll('.promotion-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const piece = btn.dataset.piece;
+                document.getElementById('modal-promotion').classList.remove('active');
+                if (state.pendingPromotion) {
+                    attemptMove(state.pendingPromotion.toRow, state.pendingPromotion.toCol, piece);
+                    state.pendingPromotion = null;
+                }
+            });
+        });
+
+        document.getElementById('promotion-cancel').addEventListener('click', () => {
+            document.getElementById('modal-promotion').classList.remove('active');
+            state.pendingPromotion = null;
+            setStatus('Promotion cancelled');
+        });
+
+        // --- Center button ---
+
+        document.getElementById('btn-center').addEventListener('click', centerOnSelf);
+
+        // --- Resize ---
+
+        window.addEventListener('resize', () => {
+            const rect = boardContainer.getBoundingClientRect();
+            state.viewCols = Math.ceil(rect.width / 40) + 2;
+            state.viewRows = Math.ceil(rect.height / 40) + 2;
+            render();
+        });
+
+        // --- Init ---
+
+        (function init() {
+            const savedToken = localStorage.getItem('chess_token');
+            if (savedToken) {
+                document.getElementById('modal-join').classList.remove('active');
+            }
+            const rect = boardContainer.getBoundingClientRect();
+            state.viewCols = Math.ceil(rect.width / 40) + 2;
+            state.viewRows = Math.ceil(rect.height / 40) + 2;
+            connect();
+        })();
+    </script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import {
   Position,
   SelectionResult,
   ServerPlayer,
+  TurnInfo,
   buildPawnDirections,
   normalizePieces,
 } from "../api/game";
@@ -21,23 +22,23 @@ const PLAYER_COLORS = [
 ] as const;
 
 const DARK_SQUARE_COLOR = "#695695";
-const COOLDOWN_WINDOW_SECONDS = 10;
 
 export const useBoardState = () => {
   const clientRef = useRef<ChessWebSocketClient | null>(null);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [players, setPlayers] = useState<ServerPlayer[]>([]);
+  const [turn, setTurn] = useState<TurnInfo | null>(null);
+  const [turnSecondsRemaining, setTurnSecondsRemaining] = useState(0);
   const [pawnDirections, setPawnDirections] = useState<
     Record<string, Position>
   >({});
-  const [activePlayerId, setActivePlayerId] = useState<string>("");
+  const [myPlayerId, setMyPlayerId] = useState<string>("");
   const [displayName, setDisplayName] = useState<string>("");
   const [isConnected, setIsConnected] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [selectedBankPiece, setSelectedBankPiece] = useState<
     Piece["type"] | null
   >(null);
@@ -50,24 +51,41 @@ export const useBoardState = () => {
     [players]
   );
 
-  const activePlayer = useMemo(
-    () => players.find((player) => player.id === activePlayerId),
-    [players, activePlayerId]
+  const myPlayer = useMemo(
+    () => players.find((player) => player.id === myPlayerId),
+    [players, myPlayerId]
   );
 
-  const bank = activePlayer?.bank ?? [];
+  const isMyTurn = useMemo(() => {
+    if (turn?.player_id) {
+      return turn.player_id === myPlayerId;
+    }
+    return myPlayer?.is_turn ?? false;
+  }, [turn, myPlayerId, myPlayer]);
+
+  const bank = myPlayer?.bank ?? [];
 
   useEffect(() => {
-    if (cooldownRemaining <= 0) {
+    if (!turn) {
+      setTurnSecondsRemaining(0);
       return;
     }
 
+    setTurnSecondsRemaining(turn.seconds_remaining);
+
     const interval = setInterval(() => {
-      setCooldownRemaining((current) => Math.max(0, current - 0.05));
-    }, 50);
+      const remaining = Math.max(0, turn.deadline - Date.now() / 1000);
+      setTurnSecondsRemaining(remaining);
+    }, 100);
 
     return () => clearInterval(interval);
-  }, [cooldownRemaining]);
+  }, [turn]);
+
+  useEffect(() => {
+    if (!isMyTurn) {
+      setSelectedBankPiece(null);
+    }
+  }, [isMyTurn]);
 
   useEffect(() => {
     const client = new ChessWebSocketClient(getWebSocketUrl());
@@ -82,7 +100,7 @@ export const useBoardState = () => {
       },
       onAuth: ({ authenticated, playerId, displayName: name }) => {
         setIsAuthenticated(authenticated);
-        setActivePlayerId(playerId ?? "");
+        setMyPlayerId(playerId ?? "");
         setDisplayName(name ?? "");
         setIsLoading(false);
       },
@@ -90,11 +108,22 @@ export const useBoardState = () => {
         setPieces(normalizePieces(state.pieces));
         setPlayers(state.players);
         setPawnDirections(buildPawnDirections(state.pieces, state.players));
+        setTurn(state.turn ?? null);
         setIsLoading(false);
       },
       onError: (message) => {
         if (message !== "Invalid token") {
           setStatusMessage(message);
+        }
+      },
+      onTurnPassed: (playerId, reason) => {
+        setStatusMessage(
+          `Turn passed for ${playerId} (${reason.replace(/_/g, " ")})`
+        );
+      },
+      onBroadcastMoveResult: (result) => {
+        if (result.auto) {
+          setStatusMessage("Turn timer expired — auto move played");
         }
       },
     });
@@ -122,7 +151,15 @@ export const useBoardState = () => {
 
   const select = useCallback(
     async (row: number, col: number): Promise<SelectionResult> => {
-      return clientRef.current?.select(row, col) ?? Promise.resolve({ success: false });
+      const result =
+        (await clientRef.current?.select(row, col)) ??
+        ({ success: false } as SelectionResult);
+
+      if (!result.success && result.error) {
+        setStatusMessage(result.error);
+      }
+
+      return result;
     },
     []
   );
@@ -142,13 +179,6 @@ export const useBoardState = () => {
           promotionPiece as Piece["type"] | undefined
         )) ?? { success: false };
 
-      if (
-        !result.success &&
-        result.error?.toLowerCase().includes("cooldown")
-      ) {
-        setCooldownRemaining(COOLDOWN_WINDOW_SECONDS);
-      }
-
       if (result.error) {
         setStatusMessage(result.error);
       } else if (result.success) {
@@ -166,13 +196,6 @@ export const useBoardState = () => {
         (await clientRef.current?.drop(pieceType, row, col)) ??
         { success: false };
 
-      if (
-        !result.success &&
-        result.error?.toLowerCase().includes("cooldown")
-      ) {
-        setCooldownRemaining(COOLDOWN_WINDOW_SECONDS);
-      }
-
       if (result.error) {
         setStatusMessage(result.error);
       } else if (result.success) {
@@ -188,9 +211,14 @@ export const useBoardState = () => {
   return {
     pieces,
     players,
+    turn,
     pawnDirections,
-    activePlayerId,
+    myPlayerId,
+    activePlayerId: myPlayerId,
     displayName,
+    isMyTurn,
+    turnSecondsRemaining,
+    turnLengthSeconds: turn?.turn_seconds ?? 10,
     bank,
     selectedBankPiece,
     setSelectedBankPiece,
@@ -199,7 +227,6 @@ export const useBoardState = () => {
     isLoading,
     error,
     statusMessage,
-    cooldownRemaining,
     darkSquareColor: DARK_SQUARE_COLOR,
     getPlayerColor,
     join,

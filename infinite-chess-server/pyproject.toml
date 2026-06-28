@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "infinite-chess-server"
+version = "0.1.0"
+description = "Multiplayer server for infinite chess"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = [
+    "infinite-chess @ file:./infinite-chess",
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.20",
+    "websockets>=11.0",
+]
+
+[project.scripts]
+infinite-chess-server = "server.main:run"
+
+[tool.setuptools.packages.find]
+include = ["server*"]

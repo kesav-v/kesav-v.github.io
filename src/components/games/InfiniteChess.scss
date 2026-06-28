@@ -150,6 +150,21 @@
     }
   }
 
+  &__turn-status {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+
+    &--active {
+      color: #90caf9;
+      font-weight: 600;
+    }
+  }
+
+  &__player-item--turn {
+    font-weight: 600;
+    color: #90caf9;
+  }
+
   &__connection-status,
   &__status-message {
     color: rgba(255, 255, 255, 0.75);

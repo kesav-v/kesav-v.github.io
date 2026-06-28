@@ -24,7 +24,9 @@ interface ChessboardProps {
   pawnDirections: Record<string, Position>;
   getPlayerColor: (playerId: string) => string;
   activePlayerId: string;
-  cooldownRemaining: number;
+  isMyTurn: boolean;
+  turnSecondsRemaining: number;
+  turnLengthSeconds: number;
   selectedBankPiece: Piece["type"] | null;
   onSelect: (row: number, col: number) => Promise<SelectionResult>;
   onMove: (
@@ -42,7 +44,9 @@ const Chessboard: React.FC<ChessboardProps> = ({
   pawnDirections,
   getPlayerColor,
   activePlayerId,
-  cooldownRemaining,
+  isMyTurn,
+  turnSecondsRemaining,
+  turnLengthSeconds,
   selectedBankPiece,
   onSelect,
   onMove,
@@ -71,7 +75,15 @@ const Chessboard: React.FC<ChessboardProps> = ({
     hasInitialCentered.current = false;
     setSelectedPiece(null);
     setLegalDestinations([]);
-  }, [activePlayerId]);
+  }, [activePlayerId, isMyTurn]);
+
+  useEffect(() => {
+    if (!isMyTurn) {
+      setSelectedPiece(null);
+      setLegalDestinations([]);
+      setPromotionDialog(null);
+    }
+  }, [isMyTurn]);
 
   useEffect(() => {
     const updateTransformState = () => {
@@ -199,6 +211,10 @@ const Chessboard: React.FC<ChessboardProps> = ({
   };
 
   const handleSquareClick = async (row: number, col: number) => {
+    if (!isMyTurn) {
+      return;
+    }
+
     if (selectedBankPiece) {
       const pieceAtPosition = pieces.find(
         (piece) => piece.position.row === row && piece.position.col === col
@@ -237,10 +253,10 @@ const Chessboard: React.FC<ChessboardProps> = ({
 
   const attemptSelect = async (row: number, col: number) => {
     const result = await onSelect(row, col);
-    if (result.success && result.piece && result.legal_moves) {
+    if (result.success && result.piece) {
       if (result.piece.player_id === activePlayerId) {
         setSelectedPiece(normalizePiece(result.piece));
-        setLegalDestinations(result.legal_moves);
+        setLegalDestinations(result.legal_moves ?? []);
       } else {
         clearSelection();
       }
@@ -318,11 +334,12 @@ const Chessboard: React.FC<ChessboardProps> = ({
             (destination) => destination.row === row && destination.col === col
           );
         const isClickable =
-          !!isLegalMove ||
-          (!!selectedBankPiece && !piece) ||
-          (!selectedPiece &&
-            !selectedBankPiece &&
-            piece?.player_id === activePlayerId);
+          isMyTurn &&
+          (!!isLegalMove ||
+            (!!selectedBankPiece && !piece) ||
+            (!selectedPiece &&
+              !selectedBankPiece &&
+              piece?.player_id === activePlayerId));
 
         const isOutsideBorder = borderBounds
           ? row < borderBounds.minRow ||
@@ -372,8 +389,10 @@ const Chessboard: React.FC<ChessboardProps> = ({
     );
   };
 
-  const cooldownProgress =
-    cooldownRemaining > 0 ? (cooldownRemaining / 10) * 100 : 0;
+  const turnProgress =
+    turnLengthSeconds > 0
+      ? (turnSecondsRemaining / turnLengthSeconds) * 100
+      : 0;
 
   return (
     <div className="chessboard" ref={wrapperRef}>
@@ -403,12 +422,12 @@ const Chessboard: React.FC<ChessboardProps> = ({
           />
         </svg>
       </button>
-      {cooldownRemaining > 0 && (
+      {isMyTurn && turnSecondsRemaining > 0 && (
         <div className="chessboard__cooldown">
           <div className="chessboard__cooldown-bar">
             <div
               className="chessboard__cooldown-progress"
-              style={{ width: `${cooldownProgress}%` }}
+              style={{ width: `${turnProgress}%` }}
             />
           </div>
         </div>

@@ -34,8 +34,16 @@ export interface ServerPlayer {
   orientation: "vertical" | "horizontal";
   alive: boolean;
   connected: boolean;
+  is_turn?: boolean;
   bank: PieceType[];
   pawn_drop_rank_info?: PawnDropRankInfo;
+}
+
+export interface TurnInfo {
+  player_id: string;
+  deadline: number;
+  seconds_remaining: number;
+  turn_seconds: number;
 }
 
 export interface SelectionResult {
@@ -52,6 +60,7 @@ export interface MoveResult {
   spawn_position?: Position | null;
   error?: string;
   promotion_available?: boolean;
+  auto?: boolean;
 }
 
 export interface JoinedMessage {
@@ -72,6 +81,14 @@ export interface StateMessage {
   type: "state";
   pieces: ServerPiece[];
   players: ServerPlayer[];
+  turn?: TurnInfo;
+}
+
+export interface TurnPassedMessage {
+  type: "turn_passed";
+  success: boolean;
+  player_id: string;
+  reason: string;
 }
 
 export interface SelectionMessage extends SelectionResult {
@@ -93,6 +110,7 @@ export type ServerMessage =
   | StateMessage
   | SelectionMessage
   | MoveResultMessage
+  | TurnPassedMessage
   | ErrorMessage;
 
 export function normalizePiece(piece: ServerPiece): Piece {

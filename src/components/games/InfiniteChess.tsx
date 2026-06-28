@@ -11,8 +11,13 @@ const InfiniteChess: React.FC = () => {
     pieces,
     players,
     pawnDirections,
+    myPlayerId,
     activePlayerId,
     displayName,
+    isMyTurn,
+    turn,
+    turnSecondsRemaining,
+    turnLengthSeconds,
     bank,
     selectedBankPiece,
     setSelectedBankPiece,
@@ -21,7 +26,6 @@ const InfiniteChess: React.FC = () => {
     isLoading,
     error,
     statusMessage,
-    cooldownRemaining,
     darkSquareColor,
     getPlayerColor,
     join,
@@ -119,7 +123,23 @@ const InfiniteChess: React.FC = () => {
       <div className="infinite-chess__sidebar">
         <div className="infinite-chess__panel">
           <h3>You</h3>
-          <p>{displayName || activePlayerId}</p>
+          <p>{displayName || myPlayerId}</p>
+          {turn && (
+            <p
+              className={
+                isMyTurn
+                  ? "infinite-chess__turn-status infinite-chess__turn-status--active"
+                  : "infinite-chess__turn-status"
+              }
+            >
+              {isMyTurn
+                ? `Your turn (${turnSecondsRemaining.toFixed(1)}s)`
+                : `Waiting for ${
+                    players.find((player) => player.id === turn.player_id)
+                      ?.display_name || turn.player_id
+                  }`}
+            </p>
+          )}
           {!isConnected && (
             <p className="infinite-chess__connection-status">Reconnecting...</p>
           )}
@@ -138,7 +158,12 @@ const InfiniteChess: React.FC = () => {
           <h3>Players ({players.length})</h3>
           <ul className="infinite-chess__player-list">
             {players.map((player) => (
-              <li key={player.id}>
+              <li
+                key={player.id}
+                className={
+                  player.is_turn ? "infinite-chess__player-item--turn" : undefined
+                }
+              >
                 <span
                   className="infinite-chess__player-dot"
                   style={{ backgroundColor: getPlayerColor(player.id) }}
@@ -151,7 +176,7 @@ const InfiniteChess: React.FC = () => {
           </ul>
         </div>
 
-        {bank.length > 0 && (
+        {bank.length > 0 && isMyTurn && (
           <div className="infinite-chess__panel">
             <h3>Captured Pieces</h3>
             <p className="infinite-chess__bank-hint">
@@ -197,7 +222,9 @@ const InfiniteChess: React.FC = () => {
           pawnDirections={pawnDirections}
           getPlayerColor={getPlayerColor}
           activePlayerId={activePlayerId}
-          cooldownRemaining={cooldownRemaining}
+          isMyTurn={isMyTurn}
+          turnSecondsRemaining={turnSecondsRemaining}
+          turnLengthSeconds={turnLengthSeconds}
           selectedBankPiece={selectedBankPiece}
           onSelect={select}
           onMove={move}

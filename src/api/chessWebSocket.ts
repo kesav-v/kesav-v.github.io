@@ -37,6 +37,8 @@ export class ChessWebSocketClient {
   private onAuth: ((auth: AuthState) => void) | null = null;
   private onConnection: ((connected: boolean) => void) | null = null;
   private onError: ((message: string) => void) | null = null;
+  private onTurnPassed: ((playerId: string, reason: string) => void) | null = null;
+  private onBroadcastMoveResult: ((result: MoveResult) => void) | null = null;
 
   constructor(private readonly url: string) {}
 
@@ -45,11 +47,15 @@ export class ChessWebSocketClient {
     onAuth?: (auth: AuthState) => void;
     onConnection?: (connected: boolean) => void;
     onError?: (message: string) => void;
+    onTurnPassed?: (playerId: string, reason: string) => void;
+    onBroadcastMoveResult?: (result: MoveResult) => void;
   }): void {
     this.onState = handlers.onState ?? null;
     this.onAuth = handlers.onAuth ?? null;
     this.onConnection = handlers.onConnection ?? null;
     this.onError = handlers.onError ?? null;
+    this.onTurnPassed = handlers.onTurnPassed ?? null;
+    this.onBroadcastMoveResult = handlers.onBroadcastMoveResult ?? null;
   }
 
   connect(): void {
@@ -187,6 +193,9 @@ export class ChessWebSocketClient {
       case "move_result":
         this.handleMoveResult(message);
         break;
+      case "turn_passed":
+        this.onTurnPassed?.(message.player_id, message.reason);
+        break;
       case "error":
         this.handleError(message.error);
         break;
@@ -230,20 +239,26 @@ export class ChessWebSocketClient {
   }
 
   private handleMoveResult(message: MoveResultMessage): void {
-    if (!this.pendingMove) {
-      return;
-    }
-
-    const { resolve } = this.pendingMove;
-    this.pendingMove = null;
-    resolve({
+    const result: MoveResult = {
       success: message.success,
       moved_piece_type: message.moved_piece_type,
       spawned_pawn: message.spawned_pawn,
       spawn_position: message.spawn_position,
       error: message.error,
       promotion_available: message.promotion_available,
-    });
+      auto: message.auto,
+    };
+
+    if (this.pendingMove) {
+      const { resolve } = this.pendingMove;
+      this.pendingMove = null;
+      resolve(result);
+      return;
+    }
+
+    if (message.auto) {
+      this.onBroadcastMoveResult?.(result);
+    }
   }
 
   private handleError(error: string): void {

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Chess</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #e94560;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        button {
+            background: #0f3460;
+            color: #eee;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #e94560;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        #board-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        #board-container:active {
+            cursor: grabbing;
+        }
+
+        #board {
+            position: absolute;
+            display: grid;
+            user-select: none;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .cell.light {
+            background: #2d2d44;
+        }
+
+        .cell.dark {
+            background: #1e1e30;
+        }
+
+        .cell:hover {
+            outline: 2px solid #e94560;
+            outline-offset: -2px;
+            z-index: 1;
+        }
+
+        .cell.selected {
+            background: #e9456080 !important;
+        }
+
+        .cell.legal-move {
+            position: relative;
+        }
+
+        .cell.legal-move::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+
+        .cell.legal-move.has-piece::after {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: 3px solid #4ade80;
+        }
+
+        .piece {
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+
+        .player-1 { color: #ffffff; }
+        .player-2 { color: #22d3ee; }
+        .player-3 { color: #facc15; }
+        .player-4 { color: #4ade80; }
+        .player-5 { color: #c084fc; }
+        .player-6 { color: #f87171; }
+        .player-7 { color: #60a5fa; }
+
+        .stone { color: #6b7280; }
+
+        #sidebar {
+            width: 280px;
+            background: #16213e;
+            padding: 1.5rem;
+            border-left: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .panel {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .panel h3 {
+            color: #e94560;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .player-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            background: #0f3460;
+            font-size: 0.9rem;
+        }
+
+        .player-item.current {
+            border: 1px solid #e94560;
+        }
+
+        .player-item.dead {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .player-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .selection-info {
+            font-size: 0.9rem;
+        }
+
+        #status-bar {
+            background: #0f3460;
+            padding: 0.75rem 2rem;
+            font-size: 0.9rem;
+            border-top: 1px solid #16213e;
+        }
+
+        .keyboard-hint {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .keyboard-hint kbd {
+            background: #0f3460;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #16213e;
+            padding: 2rem;
+            border-radius: 8px;
+            min-width: 300px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 1rem;
+            color: #e94560;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #0f3460;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #eee;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .promotion-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .promotion-btn {
+            font-size: 2rem;
+            padding: 1rem;
+            background: #1a1a2e;
+        }
+
+        .promotion-btn:hover {
+            background: #e94560;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Infinite Chess</h1>
+        <div class="controls">
+            <button id="btn-spawn">Spawn Player (P)</button>
+            <button id="btn-cycle">Next Player (Tab)</button>
+            <button id="btn-center">Center (C)</button>
+            <button id="btn-save">Save (I)</button>
+            <button id="btn-load">Load (O)</button>
+            <button id="btn-reset">Reset</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="board-container">
+            <div id="board"></div>
+        </div>
+        <div id="sidebar">
+            <div class="panel">
+                <h3>View</h3>
+                <div class="info-row">
+                    <span class="info-label">Camera:</span>
+                    <span id="camera-pos">(0, 0)</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cursor:</span>
+                    <span id="cursor-pos">-</span>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Players</h3>
+                <div id="player-list" class="player-list">
+                    <p style="color: #666; font-size: 0.9rem;">No players yet. Press P to spawn.</p>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Selection</h3>
+                <div id="selection-info" class="selection-info">
+                    <p style="color: #666;">Click a piece to select it.</p>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Controls</h3>
+                <div class="keyboard-hint">
+                    <p><kbd>WASD</kbd> / <kbd>Arrows</kbd> - Pan view</p>
+                    <p><kbd>Click</kbd> - Select / Move</p>
+                    <p><kbd>Scroll</kbd> - Pan view</p>
+                    <p><kbd>Drag</kbd> - Pan view</p>
+                    <p><kbd>Esc</kbd> - Clear selection</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="status-bar">Ready. Press P to spawn a player.</div>
+
+    <div id="modal-save" class="modal">
+        <div class="modal-content">
+            <h2>Save Game</h2>
+            <input type="text" id="save-filename" placeholder="Enter filename">
+            <div class="modal-buttons">
+                <button id="save-cancel">Cancel</button>
+                <button id="save-confirm">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-load" class="modal">
+        <div class="modal-content">
+            <h2>Load Game</h2>
+            <input type="text" id="load-filename" placeholder="Enter filename">
+            <div class="modal-buttons">
+                <button id="load-cancel">Cancel</button>
+                <button id="load-confirm">Load</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-promotion" class="modal">
+        <div class="modal-content">
+            <h2>Promote Pawn</h2>
+            <div class="promotion-options">
+                <button class="promotion-btn" data-piece="queen">&#9813;</button>
+                <button class="promotion-btn" data-piece="rook">&#9814;</button>
+                <button class="promotion-btn" data-piece="bishop">&#9815;</button>
+                <button class="promotion-btn" data-piece="knight">&#9816;</button>
+            </div>
+            <div class="modal-buttons">
+                <button id="promotion-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PIECE_SYMBOLS = {
+            king: '♔',
+            queen: '♕',
+            rook: '♖',
+            bishop: '♗',
+            knight: '♘',
+            pawn: '♙',
+            stone: '▪',
+        };
+
+        const PLAYER_COLORS = ['#ffffff', '#22d3ee', '#facc15', '#4ade80', '#c084fc', '#f87171', '#60a5fa'];
+
+        const state = {
+            pieces: [],
+            players: [],
+            currentPlayer: null,
+            currentPlayerIdx: 0,
+            cameraRow: 0,
+            cameraCol: 0,
+            selectedPos: null,
+            selectedPiece: null,
+            legalMoves: [],
+            viewRows: 25,
+            viewCols: 35,
+            pendingPromotion: null,
+        };
+
+        const boardEl = document.getElementById('board');
+        const boardContainer = document.getElementById('board-container');
+
+        async function fetchState() {
+            const res = await fetch('/api/state');
+            const data = await res.json();
+            state.pieces = data.pieces;
+            state.players = data.players;
+            state.currentPlayer = data.current_player;
+            state.currentPlayerIdx = data.current_player_idx;
+            state.cameraRow = data.camera_row;
+            state.cameraCol = data.camera_col;
+            render();
+        }
+
+        function getPlayerIndex(playerId) {
+            return state.players.findIndex(p => p.id === playerId);
+        }
+
+        function getPlayerColor(playerId) {
+            const idx = getPlayerIndex(playerId);
+            return idx >= 0 ? PLAYER_COLORS[idx % PLAYER_COLORS.length] : '#6b7280';
+        }
+
+        function render() {
+            const halfRows = Math.floor(state.viewRows / 2);
+            const halfCols = Math.floor(state.viewCols / 2);
+
+            boardEl.style.gridTemplateColumns = `repeat(${state.viewCols}, 40px)`;
+            boardEl.innerHTML = '';
+
+            const pieceMap = {};
+            for (const piece of state.pieces) {
+                pieceMap[`${piece.row},${piece.col}`] = piece;
+            }
+
+            const legalMoveSet = new Set(state.legalMoves.map(m => `${m.row},${m.col}`));
+
+            for (let screenY = 0; screenY < state.viewRows; screenY++) {
+                for (let screenX = 0; screenX < state.viewCols; screenX++) {
+                    const boardRow = state.cameraRow - halfRows + screenY;
+                    const boardCol = state.cameraCol - halfCols + screenX;
+                    const key = `${boardRow},${boardCol}`;
+
+                    const cell = document.createElement('div');
+                    cell.className = 'cell ' + ((boardRow + boardCol) % 2 === 0 ? 'light' : 'dark');
+                    cell.dataset.row = boardRow;
+                    cell.dataset.col = boardCol;
+
+                    const piece = pieceMap[key];
+                    const isLegalMove = legalMoveSet.has(key);
+                    const isSelected = state.selectedPos && 
+                        state.selectedPos.row === boardRow && 
+                        state.selectedPos.col === boardCol;
+
+                    if (isSelected) {
+                        cell.classList.add('selected');
+                    }
+
+                    if (isLegalMove) {
+                        cell.classList.add('legal-move');
+                        if (piece) {
+                            cell.classList.add('has-piece');
+                        }
+                    }
+
+                    if (piece) {
+                        const pieceEl = document.createElement('span');
+                        pieceEl.className = 'piece';
+                        pieceEl.textContent = PIECE_SYMBOLS[piece.type] || '?';
+                        if (piece.type === 'stone') {
+                            pieceEl.style.color = '#6b7280';
+                        } else {
+                            pieceEl.style.color = getPlayerColor(piece.player_id);
+                        }
+                        cell.appendChild(pieceEl);
+                    }
+
+                    cell.addEventListener('click', () => handleCellClick(boardRow, boardCol));
+                    boardEl.appendChild(cell);
+                }
+            }
+
+            // Center the board
+            const containerRect = boardContainer.getBoundingClientRect();
+            const boardWidth = state.viewCols * 40;
+            const boardHeight = state.viewRows * 40;
+            boardEl.style.left = `${(containerRect.width - boardWidth) / 2}px`;
+            boardEl.style.top = `${(containerRect.height - boardHeight) / 2}px`;
+
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('camera-pos').textContent = `(${state.cameraRow}, ${state.cameraCol})`;
+            
+            const playerListEl = document.getElementById('player-list');
+            if (state.players.length === 0) {
+                playerListEl.innerHTML = '<p style="color: #666; font-size: 0.9rem;">No players yet. Press P to spawn.</p>';
+            } else {
+                playerListEl.innerHTML = state.players.map((p, idx) => {
+                    const isCurrent = idx === state.currentPlayerIdx;
+                    const color = PLAYER_COLORS[idx % PLAYER_COLORS.length];
+                    const orient = p.orientation === 'vertical' ? 'V' : 'H';
+                    const deadClass = !p.alive ? 'dead' : '';
+                    const currentClass = isCurrent ? 'current' : '';
+                    return `<div class="player-item ${currentClass} ${deadClass}">
+                        <span class="player-dot" style="background: ${color}"></span>
+                        <span>${p.id} [${orient}]</span>
+                    </div>`;
+                }).join('');
+            }
+
+            const selectionEl = document.getElementById('selection-info');
+            if (state.selectedPiece) {
+                selectionEl.innerHTML = `
+                    <p><strong>${state.selectedPiece.type}</strong></p>
+                    <p>At: (${state.selectedPos.row}, ${state.selectedPos.col})</p>
+                    <p>${state.legalMoves.length} legal moves</p>
+                `;
+            } else {
+                selectionEl.innerHTML = '<p style="color: #666;">Click a piece to select it.</p>';
+            }
+        }
+
+        function setStatus(msg) {
+            document.getElementById('status-bar').textContent = msg;
+        }
+
+        async function handleCellClick(row, col) {
+            document.getElementById('cursor-pos').textContent = `(${row}, ${col})`;
+
+            if (state.legalMoves.some(m => m.row === row && m.col === col)) {
+                await attemptMove(row, col);
+                return;
+            }
+
+            const res = await fetch('/api/select', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row, col }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                state.selectedPos = { row, col };
+                state.selectedPiece = data.piece;
+                state.legalMoves = data.legal_moves;
+                setStatus(`Selected ${data.piece.type} - ${data.legal_moves.length} legal moves`);
+                render();
+            } else {
+                if (state.selectedPos) {
+                    clearSelection();
+                    setStatus('Selection cleared');
+                    render();
+                } else {
+                    setStatus(data.error || 'Cannot select');
+                }
+            }
+        }
+
+        async function attemptMove(toRow, toCol, promotion = null) {
+            const res = await fetch('/api/move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    from_row: state.selectedPos.row,
+                    from_col: state.selectedPos.col,
+                    to_row: toRow,
+                    to_col: toCol,
+                    promotion,
+                }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                let msg = `Moved ${state.selectedPiece.type} to (${toRow}, ${toCol})`;
+                if (data.spawned_pawn) {
+                    msg += ` | New pawn at (${data.spawn_position.row}, ${data.spawn_position.col})`;
+                }
+                setStatus(msg);
+                clearSelection();
+                await fetchState();
+            } else if (data.promotion_available) {
+                state.pendingPromotion = { toRow, toCol };
+                document.getElementById('modal-promotion').classList.add('active');
+            } else {
+                setStatus(`Move failed: ${data.error}`);
+            }
+        }
+
+        function clearSelection() {
+            state.selectedPos = null;
+            state.selectedPiece = null;
+            state.legalMoves = [];
+        }
+
+        async function spawnPlayer() {
+            const res = await fetch('/api/spawn', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                state.cameraRow = data.position.row;
+                state.cameraCol = data.position.col;
+                setStatus(`Spawned ${data.player_id} at (${data.position.row}, ${data.position.col})`);
+                clearSelection();
+                await fetchState();
+            }
+        }
+
+        async function cyclePlayer() {
+            const res = await fetch('/api/cycle_player', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                setStatus(`Switched to ${data.current_player}`);
+                clearSelection();
+                await fetchState();
+            }
+        }
+
+        async function centerOnPlayer() {
+            if (state.players.length === 0) return;
+            const player = state.players[state.currentPlayerIdx];
+            if (!player) return;
+
+            const playerPieces = state.pieces.filter(p => p.player_id === player.id);
+            if (playerPieces.length === 0) return;
+
+            const avgRow = Math.round(playerPieces.reduce((s, p) => s + p.row, 0) / playerPieces.length);
+            const avgCol = Math.round(playerPieces.reduce((s, p) => s + p.col, 0) / playerPieces.length);
+
+            state.cameraRow = avgRow;
+            state.cameraCol = avgCol;
+            await fetch('/api/camera', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row: avgRow, col: avgCol }),
+            });
+            render();
+        }
+
+        function panCamera(dRow, dCol) {
+            state.cameraRow += dRow;
+            state.cameraCol += dCol;
+            fetch('/api/camera', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row: state.cameraRow, col: state.cameraCol }),
+            });
+            render();
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+
+            switch (e.key.toLowerCase()) {
+                case 'w':
+                case 'arrowup':
+                    panCamera(-1, 0);
+                    break;
+                case 's':
+                case 'arrowdown':
+                    panCamera(1, 0);
+                    break;
+                case 'a':
+                case 'arrowleft':
+                    panCamera(0, -1);
+                    break;
+                case 'd':
+                case 'arrowright':
+                    panCamera(0, 1);
+                    break;
+                case 'p':
+                    spawnPlayer();
+                    break;
+                case 'tab':
+                    e.preventDefault();
+                    cyclePlayer();
+                    break;
+                case 'c':
+                    centerOnPlayer();
+                    break;
+                case 'escape':
+                    clearSelection();
+                    setStatus('Selection cleared');
+                    render();
+                    break;
+                case 'i':
+                    document.getElementById('modal-save').classList.add('active');
+                    document.getElementById('save-filename').focus();
+                    break;
+                case 'o':
+                    document.getElementById('modal-load').classList.add('active');
+                    document.getElementById('load-filename').focus();
+                    break;
+            }
+        });
+
+        // Mouse wheel pan
+        boardContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const dRow = Math.sign(e.deltaY);
+            const dCol = Math.sign(e.deltaX);
+            if (e.shiftKey) {
+                panCamera(0, dRow || dCol);
+            } else {
+                panCamera(dRow, 0);
+            }
+        });
+
+        // Drag to pan
+        let isDragging = false;
+        let dragStartX, dragStartY, dragStartCameraRow, dragStartCameraCol;
+
+        boardContainer.addEventListener('mousedown', (e) => {
+            if (e.target === boardContainer || e.target === boardEl) {
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                dragStartCameraRow = state.cameraRow;
+                dragStartCameraCol = state.cameraCol;
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            state.cameraRow = dragStartCameraRow - Math.round(dy / 40);
+            state.cameraCol = dragStartCameraCol - Math.round(dx / 40);
+            render();
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                fetch('/api/camera', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ row: state.cameraRow, col: state.cameraCol }),
+                });
+            }
+        });
+
+        // Button handlers
+        document.getElementById('btn-spawn').addEventListener('click', spawnPlayer);
+        document.getElementById('btn-cycle').addEventListener('click', cyclePlayer);
+        document.getElementById('btn-center').addEventListener('click', centerOnPlayer);
+        document.getElementById('btn-reset').addEventListener('click', async () => {
+            await fetch('/api/reset', { method: 'POST' });
+            clearSelection();
+            setStatus('Game reset');
+            await fetchState();
+        });
+
+        // Save modal
+        document.getElementById('btn-save').addEventListener('click', () => {
+            document.getElementById('modal-save').classList.add('active');
+            document.getElementById('save-filename').focus();
+        });
+        document.getElementById('save-cancel').addEventListener('click', () => {
+            document.getElementById('modal-save').classList.remove('active');
+        });
+        document.getElementById('save-confirm').addEventListener('click', async () => {
+            const filename = document.getElementById('save-filename').value;
+            const res = await fetch('/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setStatus(`Saved to ${data.filename}`);
+            } else {
+                setStatus(`Save failed: ${data.error}`);
+            }
+            document.getElementById('modal-save').classList.remove('active');
+            document.getElementById('save-filename').value = '';
+        });
+
+        // Load modal
+        document.getElementById('btn-load').addEventListener('click', () => {
+            document.getElementById('modal-load').classList.add('active');
+            document.getElementById('load-filename').focus();
+        });
+        document.getElementById('load-cancel').addEventListener('click', () => {
+            document.getElementById('modal-load').classList.remove('active');
+        });
+        document.getElementById('load-confirm').addEventListener('click', async () => {
+            const filename = document.getElementById('load-filename').value;
+            const res = await fetch('/api/load', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setStatus(`Loaded from ${data.filename}`);
+                clearSelection();
+                await fetchState();
+            } else {
+                setStatus(`Load failed: ${data.error}`);
+            }
+            document.getElementById('modal-load').classList.remove('active');
+            document.getElementById('load-filename').value = '';
+        });
+
+        // Promotion modal
+        document.querySelectorAll('.promotion-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const piece = btn.dataset.piece;
+                document.getElementById('modal-promotion').classList.remove('active');
+                if (state.pendingPromotion) {
+                    await attemptMove(state.pendingPromotion.toRow, state.pendingPromotion.toCol, piece);
+                    state.pendingPromotion = null;
+                }
+            });
+        });
+        document.getElementById('promotion-cancel').addEventListener('click', () => {
+            document.getElementById('modal-promotion').classList.remove('active');
+            state.pendingPromotion = null;
+            setStatus('Promotion cancelled');
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const containerRect = boardContainer.getBoundingClientRect();
+            state.viewCols = Math.ceil(containerRect.width / 40) + 2;
+            state.viewRows = Math.ceil(containerRect.height / 40) + 2;
+            render();
+        });
+
+        // Initialize
+        (async function init() {
+            const containerRect = boardContainer.getBoundingClientRect();
+            state.viewCols = Math.ceil(containerRect.width / 40) + 2;
+            state.viewRows = Math.ceil(containerRect.height / 40) + 2;
+            await fetchState();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  infinite-chess:
+    image: infinite-chess-server:latest
+    container_name: infinite-chess
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      SAVE_PATH: /data/world.board.json
+      TURN_SECONDS: ${TURN_SECONDS:-10}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      ADMIN_SECRET: ${ADMIN_SECRET:-}
+    volumes:
+      - chess-data:/data
+
+volumes:
+  chess-data:
