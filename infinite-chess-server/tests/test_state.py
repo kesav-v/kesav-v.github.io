@@ -179,9 +179,24 @@ def test_successful_move_advances_turn(game_state):
     assert game_state.current_turn_player_id() == s2.player_id
 
 
-def test_turn_timeout_plays_random_move(game_state, monkeypatch):
+def test_turn_timeout_single_player_does_not_auto_play(game_state, monkeypatch):
     session, _ = game_state.join("Solo")
     legal = game_state.board.get_legal_moves(session.player_id)
+    assert legal
+
+    fixed = random.Random(0)
+    monkeypatch.setattr("server.state.random.choice", fixed.choice)
+
+    game_state.turn_deadline = time.time() - 1
+
+    result = game_state.apply_turn_timeout()
+    assert result is None
+
+
+def test_turn_timeout_plays_random_move_with_two_players(game_state, monkeypatch):
+    s1, _ = game_state.join("First")
+    s2, _ = game_state.join("Second")
+    legal = game_state.board.get_legal_moves(s1.player_id)
     assert legal
 
     fixed = random.Random(0)
@@ -193,27 +208,45 @@ def test_turn_timeout_plays_random_move(game_state, monkeypatch):
     assert result is not None
     assert result.get("auto") is True
     assert result.get("success") is True
-    assert game_state.current_turn_player_id() == session.player_id
+    assert game_state.current_turn_player_id() == s2.player_id
 
 
 def test_turn_timeout_passes_when_no_actions(game_state):
-    session, _ = game_state.join("Stuck")
+    game_state.join("First")
+    game_state.join("Second")
+    session_id = game_state.current_turn_player_id()
+    assert session_id is not None
     game_state.board.pieces.clear()
     game_state.turn_deadline = time.time() - 1
 
     result = game_state.apply_turn_timeout()
     assert result is not None
     assert result["type"] == "turn_passed"
-    assert result["player_id"] == session.player_id
+    assert result["player_id"] == session_id
+
+
+def test_turn_timeout_single_player_does_not_pass(game_state):
+    session, _ = game_state.join("Stuck")
+    game_state.board.pieces.clear()
+    game_state.turn_deadline = time.time() - 1
+
+    result = game_state.apply_turn_timeout()
+    assert result is None
 
 
 def test_get_turn_data(game_state):
-    game_state.join("Timer")
+    game_state.join("First")
+    game_state.join("Second")
     turn = game_state.get_turn_data()
     assert turn is not None
     assert turn["player_id"] == "player1"
     assert turn["turn_seconds"] == 10.0
     assert turn["seconds_remaining"] >= 0
+
+
+def test_get_turn_data_absent_for_single_player(game_state):
+    game_state.join("Solo")
+    assert game_state.get_turn_data() is None
 
 
 def test_load_restores_sessions_and_board(game_state, save_path):

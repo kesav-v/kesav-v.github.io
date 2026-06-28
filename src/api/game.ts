@@ -4,7 +4,8 @@ export type PieceType =
   | "knight"
   | "bishop"
   | "queen"
-  | "king";
+  | "king"
+  | "stone";
 
 export interface Position {
   row: number;

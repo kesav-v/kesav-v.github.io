@@ -114,6 +114,10 @@ class GameState:
             if pid in self.board.players and self.board.players[pid].alive
         ]
 
+    def _should_auto_play_turns(self) -> bool:
+        """Auto-moves on timeout only when multiple alive players are in the game."""
+        return len(self._alive_player_ids()) > 1
+
     def _sync_turn_order(self) -> None:
         """Ensure turn_order contains each joined player once, in join order."""
         for pid in self.sessions:
@@ -165,6 +169,9 @@ class GameState:
     def _start_turn_timer_unlocked(self) -> None:
         player_id = self._current_turn_player_id_unlocked()
         if player_id is None:
+            self.turn_deadline = None
+            return
+        if not self._should_auto_play_turns():
             self.turn_deadline = None
             return
         player = self.board.players.get(player_id)
@@ -440,7 +447,12 @@ class GameState:
 
         with self._lock:
             player_id = self._current_turn_player_id_unlocked()
-            if player_id is None or self.turn_deadline is None or now < self.turn_deadline:
+            if (
+                player_id is None
+                or self.turn_deadline is None
+                or now < self.turn_deadline
+                or not self._should_auto_play_turns()
+            ):
                 return None
 
             actions = self._enumerate_actions(player_id)

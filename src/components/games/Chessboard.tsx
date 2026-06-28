@@ -335,6 +335,7 @@ const Chessboard: React.FC<ChessboardProps> = ({
           );
         const isClickable =
           isMyTurn &&
+          piece?.type !== "stone" &&
           (!!isLegalMove ||
             (!!selectedBankPiece && !piece) ||
             (!selectedPiece &&

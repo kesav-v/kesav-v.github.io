@@ -1,5 +1,5 @@
 import React from "react";
-import { PIECE_SVGS } from "./chess-constants";
+import { PIECE_SVGS, STONE_COLOR } from "./chess-constants";
 import { Piece } from "../../api/game";
 import "./ChessPiece.scss";
 
@@ -48,9 +48,11 @@ export const ChessPiece: React.FC<ChessPieceProps> = ({
 
   const triangleStyle = getTriangleStyle();
   const playerColor = getPlayerColor(piece.player_id);
+  const isStone = piece.type === "stone";
+  const fillColor = isStone ? STONE_COLOR : playerColor;
 
   return (
-    <div className="chess-piece">
+    <div className={`chess-piece${isStone ? " chess-piece--stone" : ""}`}>
       <svg
         width="45"
         height="45"
@@ -63,7 +65,7 @@ export const ChessPiece: React.FC<ChessPieceProps> = ({
         <path
           d={PIECE_SVGS[piece.type]}
           style={{
-            fill: getPlayerColor(piece.player_id),
+            fill: fillColor,
             stroke: "#000000",
             strokeWidth: "1.5",
             strokeLinecap: "round",
