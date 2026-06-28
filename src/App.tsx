@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from "react-router-dom";
 import "./App.css";
 import Home from "./components/Home";
-import About from "./components/About";
 import Slop from "./components/Slop";
 import InfiniteChess from "./components/games/InfiniteChess";
 import RankEverything from "./components/games/RankEverything";

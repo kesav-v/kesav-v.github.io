@@ -1,5 +1,7 @@
 import React from "react";
-import About from "./About";
+import Engineering from "./Engineering";
+import Chess from "./Chess";
+import Music from "./Music";
 
 const Home: React.FC = () => {
   return (
@@ -8,7 +10,9 @@ const Home: React.FC = () => {
       <p>
         I'm <a href="https://www.linkedin.com/in/kesav-viswanadha/">Kesav</a>.
       </p>
-      <About />
+      <Engineering />
+      <Chess />
+      <Music />
     </div>
   );
 };
