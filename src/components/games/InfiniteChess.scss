@@ -68,6 +68,124 @@
     width: 100%;
     height: 100%;
     position: relative;
+    margin-left: 280px;
+  }
+
+  &__sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 998;
+    padding: 80px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+  }
+
+  &__panel {
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    p {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+    }
+  }
+
+  &__player-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+  }
+
+  &__player-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__join-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  &__name-input {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    font-size: 1rem;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  &__connection-status,
+  &__status-message {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.9rem;
+  }
+
+  &__connection-error {
+    color: #ff8a80;
+  }
+
+  &__bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__bank-hint {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  &__bank-piece {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+
+    &--selected {
+      border-color: #4169E1;
+      background: rgba(65, 105, 225, 0.25);
+    }
   }
 
   &__loading {

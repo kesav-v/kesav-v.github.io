@@ -10,7 +10,7 @@ interface ChessSquareProps {
   piece: Piece | undefined;
   isSelected: boolean;
   isLegalMove: boolean;
-  hasLegalMoves: boolean;
+  isClickable: boolean;
   lightSquareColor: string;
   darkSquareColor: string;
   getPlayerColor: (playerId: string) => string;
@@ -26,7 +26,7 @@ export const ChessSquare: React.FC<ChessSquareProps> = ({
   piece,
   isSelected,
   isLegalMove,
-  hasLegalMoves,
+  isClickable,
   lightSquareColor,
   darkSquareColor,
   getPlayerColor,
@@ -52,7 +52,6 @@ export const ChessSquare: React.FC<ChessSquareProps> = ({
     }
   }
   const borderWeight = isSelected || isLegalMove ? 2 : 0;
-  const isClickable = (piece && hasLegalMoves) || isLegalMove;
 
   const classes = [
     "chess-square",

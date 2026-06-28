@@ -7,7 +7,7 @@ const Slop: React.FC = () => {
     {
       title: "Infinite Chess",
       description:
-        "Play infinite chess against an AI opponent or challenge your friends in real-time matches.",
+    "Play infinite chess in a shared multiplayer world over WebSocket.",
       path: "/slop/infinite-chess",
       comingSoon: false,
     },

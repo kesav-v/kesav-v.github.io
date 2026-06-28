@@ -8,48 +8,58 @@ import { ChessSquare } from "./ChessSquare";
 import { PromotionDialog } from "./PromotionDialog";
 import { PlayerRangeIndicator } from "./PlayerRangeIndicator";
 import {
-  gameApi,
-  Position,
+  MoveResult,
   Piece,
-  LegalMove,
-  MakeMoveResponse,
+  Position,
+  SelectionResult,
+  normalizePiece,
 } from "../../api/game";
 import { PIECE_SVGS } from "./chess-constants";
 import "./Chessboard.scss";
 
 interface ChessboardProps {
   darkSquareColor: string;
-  gameId: string;
+  pieces: Piece[];
   players: { id: string; spawnPosition: Position }[];
+  pawnDirections: Record<string, Position>;
   getPlayerColor: (playerId: string) => string;
   activePlayerId: string;
+  cooldownRemaining: number;
+  selectedBankPiece: Piece["type"] | null;
+  onSelect: (row: number, col: number) => Promise<SelectionResult>;
+  onMove: (
+    from: Position,
+    to: Position,
+    promotionPiece?: string
+  ) => Promise<MoveResult>;
+  onDrop: (pieceType: Piece["type"], row: number, col: number) => Promise<MoveResult>;
 }
 
 const Chessboard: React.FC<ChessboardProps> = ({
   darkSquareColor,
-  gameId,
+  pieces,
   players,
+  pawnDirections,
   getPlayerColor,
   activePlayerId,
+  cooldownRemaining,
+  selectedBankPiece,
+  onSelect,
+  onMove,
+  onDrop,
 }) => {
   const squareSize = 60;
   const lightSquareColor = "#f0d9b5";
   const transformComponentRef = useRef<ReactZoomPanPinchRef>(null);
   const hasInitialCentered = useRef<boolean>(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const previousCooldownRef = useRef<number>(0);
   const [transformState, setTransformState] = useState<{
     positionX: number;
     positionY: number;
     scale: number;
   }>({ positionX: 0, positionY: 0, scale: 1 });
-  const [pieces, setPieces] = useState<Piece[]>([]);
-  const [pawnDirections, setPawnDirections] = useState<{
-    [playerId: string]: { row: number; col: number };
-  }>({});
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
-  const [legalMoves, setLegalMoves] = useState<LegalMove[]>([]);
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const [legalDestinations, setLegalDestinations] = useState<Position[]>([]);
   const [promotionDialog, setPromotionDialog] = useState<{
     show: boolean;
     position: { x: number; y: number };
@@ -58,45 +68,11 @@ const Chessboard: React.FC<ChessboardProps> = ({
   } | null>(null);
 
   useEffect(() => {
-    const fetchBoardState = async () => {
-      const result = await gameApi.getBoardState(gameId);
-      if (result?.success) {
-        setPieces(result.pieces);
-        if (result.pawn_directions) {
-          setPawnDirections(result.pawn_directions);
-        } else {
-          // If no pawn_directions, initialize empty object
-          setPawnDirections({});
-        }
-        // Fetch legal moves for the active player
-        const moves = await gameApi.getLegalMoves(gameId, activePlayerId);
-        setLegalMoves(moves);
-      }
-    };
-
-    // Reset initial centering when game changes
     hasInitialCentered.current = false;
-    fetchBoardState();
-  }, [gameId, activePlayerId]);
+    setSelectedPiece(null);
+    setLegalDestinations([]);
+  }, [activePlayerId]);
 
-  // Poll for cooldown updates
-  useEffect(() => {
-    const updateCooldown = async () => {
-      const result = await gameApi.getCooldown(gameId, activePlayerId);
-      if (result?.success) {
-        const newCooldown = result.cooldown_remaining;
-        previousCooldownRef.current = newCooldown;
-        setCooldownRemaining(newCooldown);
-      }
-    };
-
-    updateCooldown();
-    const interval = setInterval(updateCooldown, 50); // Update every 50ms for smooth animation
-
-    return () => clearInterval(interval);
-  }, [gameId, activePlayerId]);
-
-  // Update transform state when transform changes
   useEffect(() => {
     const updateTransformState = () => {
       if (transformComponentRef.current) {
@@ -109,121 +85,90 @@ const Chessboard: React.FC<ChessboardProps> = ({
       }
     };
 
-    // Initial update
     updateTransformState();
-
-    // Set up interval to check for transform changes
     const interval = setInterval(updateTransformState, 50);
     return () => clearInterval(interval);
   }, []);
 
-  // Center the board on initial load
   useEffect(() => {
     const centerBoard = () => {
       if (!transformComponentRef.current || hasInitialCentered.current) {
         return;
       }
 
-      // Find the king piece for the active player, or use the first piece, or spawn position
       let targetPosition: Position | null = null;
-
       const king = pieces.find(
-        (p) => p.type === "king" && p.player_id === activePlayerId
+        (piece) => piece.type === "king" && piece.player_id === activePlayerId
       );
 
       if (king) {
         targetPosition = king.position;
       } else if (pieces.length > 0) {
-        // Use the first piece of the active player
         const activePlayerPiece = pieces.find(
-          (p) => p.player_id === activePlayerId
+          (piece) => piece.player_id === activePlayerId
         );
         if (activePlayerPiece) {
           targetPosition = activePlayerPiece.position;
         }
       } else {
-        // Fall back to spawn position
-        const player = players.find((p) => p.id === activePlayerId);
+        const player = players.find((player) => player.id === activePlayerId);
         if (player) {
           targetPosition = player.spawnPosition;
         }
       }
 
       if (targetPosition && transformComponentRef.current) {
-        // Get the actual wrapper dimensions instead of window dimensions
         const wrapper = wrapperRef.current;
         const viewportWidth = wrapper ? wrapper.clientWidth : window.innerWidth;
         const viewportHeight = wrapper
           ? wrapper.clientHeight
           : window.innerHeight;
-
-        // Calculate the content position (in content coordinates)
-        // The board container starts at (0,0), so squares are positioned at (col * squareSize, row * squareSize)
         const contentX = targetPosition.col * squareSize + squareSize / 2;
         const contentY = targetPosition.row * squareSize + squareSize / 2;
-
-        // Calculate transform to center this point in the viewport
-        // Transform translates the content, so to show contentX at viewport center:
-        // viewportCenter = contentX + transformX
-        // transformX = viewportCenter - contentX
         const x = viewportWidth / 2 - contentX;
         const y = viewportHeight / 2 - contentY;
 
-        // Center the board without animation on initial load
         try {
           transformComponentRef.current.setTransform(x, y, 1, 0);
           hasInitialCentered.current = true;
-          // Update transform state after centering
           setTransformState({
             positionX: x,
             positionY: y,
             scale: 1,
           });
-        } catch (error) {
-          console.error("Error centering board:", error);
+        } catch (centerError) {
+          console.error("Error centering board:", centerError);
         }
       }
     };
 
     if (pieces.length > 0 || players.length > 0) {
-      // Add a delay to ensure the transform component is fully initialized and DOM is ready
       const timeoutId = setTimeout(centerBoard, 200);
       return () => clearTimeout(timeoutId);
     }
   }, [pieces, players, activePlayerId, squareSize]);
 
-  // Function to center on the king
   const centerOnKing = () => {
-    // Find the king piece for the active player
     const king = pieces.find(
-      (p) => p.type === "king" && p.player_id === activePlayerId
+      (piece) => piece.type === "king" && piece.player_id === activePlayerId
     );
     if (king && transformComponentRef.current) {
-      // Get the actual wrapper dimensions
       const wrapper = wrapperRef.current;
       const viewportWidth = wrapper ? wrapper.clientWidth : window.innerWidth;
       const viewportHeight = wrapper
         ? wrapper.clientHeight
         : window.innerHeight;
-
-      // Calculate the content position (in content coordinates)
       const contentX = king.position.col * squareSize + squareSize / 2;
       const contentY = king.position.row * squareSize + squareSize / 2;
-
-      // Calculate transform to center this point in the viewport
       const x = viewportWidth / 2 - contentX;
       const y = viewportHeight / 2 - contentY;
-
-      // Pan to the king's position with animation
-      transformComponentRef.current.setTransform(x, y, 1, 300); // 300ms animation
+      transformComponentRef.current.setTransform(x, y, 1, 300);
     }
   };
 
   const getVisibleBounds = () => {
-    // Calculate which squares are visible in the viewport based on transform
     const wrapper = wrapperRef.current;
     if (!wrapper || !transformComponentRef.current) {
-      // Fallback: show a default area
       return {
         minRow: -10,
         maxRow: 10,
@@ -235,75 +180,72 @@ const Chessboard: React.FC<ChessboardProps> = ({
     const viewportWidth = wrapper.clientWidth;
     const viewportHeight = wrapper.clientHeight;
     const { positionX, positionY, scale } = transformState;
-
-    // Calculate the visible area in content coordinates
-    // The transform translates content, so visible area is:
-    // left = -positionX / scale
-    // right = (viewportWidth - positionX) / scale
-    // top = -positionY / scale
-    // bottom = (viewportHeight - positionY) / scale
-
     const left = -positionX / scale;
     const right = (viewportWidth - positionX) / scale;
     const top = -positionY / scale;
     const bottom = (viewportHeight - positionY) / scale;
 
-    // Convert to row/col bounds (squares are positioned at col * squareSize, row * squareSize)
-    const minCol = Math.floor(left / squareSize);
-    const maxCol = Math.ceil(right / squareSize);
-    const minRow = Math.floor(top / squareSize);
-    const maxRow = Math.ceil(bottom / squareSize);
-
     return {
-      minRow,
-      maxRow,
-      minCol,
-      maxCol,
+      minRow: Math.floor(top / squareSize),
+      maxRow: Math.ceil(bottom / squareSize),
+      minCol: Math.floor(left / squareSize),
+      maxCol: Math.ceil(right / squareSize),
     };
   };
 
+  const clearSelection = () => {
+    setSelectedPiece(null);
+    setLegalDestinations([]);
+  };
+
   const handleSquareClick = async (row: number, col: number) => {
-    const pieceAtPosition = pieces.find(
-      (p) => p.position.row === row && p.position.col === col
-    );
+    if (selectedBankPiece) {
+      const pieceAtPosition = pieces.find(
+        (piece) => piece.position.row === row && piece.position.col === col
+      );
+      if (!pieceAtPosition) {
+        const result = await onDrop(selectedBankPiece, row, col);
+        if (!result.success) {
+          return;
+        }
+      }
+      return;
+    }
 
     if (selectedPiece) {
-      // Check if the move is legal
-      const isLegalMove = legalMoves.some(
-        (move) =>
-          move.from.row === selectedPiece.position.row &&
-          move.from.col === selectedPiece.position.col &&
-          move.to.row === row &&
-          move.to.col === col
+      const isLegalMove = legalDestinations.some(
+        (destination) => destination.row === row && destination.col === col
       );
 
       if (isLegalMove) {
         const moveTo = { row, col };
         const result = await makeMove(selectedPiece.position, moveTo);
-        if (!result?.success) {
-          if (result?.cooldown_remaining) {
-            setCooldownRemaining(result.cooldown_remaining);
-          }
-          // Don't clear selected piece if promotion dialog is being shown
-          if (!result?.promotion_available) {
-            setSelectedPiece(null);
-          }
-        } else if (!result.promotion_available) {
-          setSelectedPiece(null);
+        if (!result?.success && !result?.promotion_available) {
+          clearSelection();
+        } else if (result.success) {
+          clearSelection();
         }
       } else {
-        setSelectedPiece(null);
+        clearSelection();
+        await attemptSelect(row, col);
       }
-    } else if (pieceAtPosition) {
-      // Only allow selecting pieces that belong to the active player and have legal moves
-      const hasLegalMoves = legalMoves.some(
-        (move) =>
-          move.from.row === pieceAtPosition.position.row &&
-          move.from.col === pieceAtPosition.position.col
-      );
-      if (pieceAtPosition.player_id === activePlayerId && hasLegalMoves) {
-        setSelectedPiece(pieceAtPosition);
+      return;
+    }
+
+    await attemptSelect(row, col);
+  };
+
+  const attemptSelect = async (row: number, col: number) => {
+    const result = await onSelect(row, col);
+    if (result.success && result.piece && result.legal_moves) {
+      if (result.piece.player_id === activePlayerId) {
+        setSelectedPiece(normalizePiece(result.piece));
+        setLegalDestinations(result.legal_moves);
+      } else {
+        clearSelection();
       }
+    } else {
+      clearSelection();
     }
   };
 
@@ -311,18 +253,10 @@ const Chessboard: React.FC<ChessboardProps> = ({
     from: Position,
     to: Position,
     promotionPiece?: string
-  ): Promise<MakeMoveResponse | null> => {
-    const result = await gameApi.makeMove(
-      gameId,
-      activePlayerId,
-      from,
-      to,
-      promotionPiece
-    );
+  ): Promise<MoveResult> => {
+    const result = await onMove(from, to, promotionPiece);
 
-    // If promotion is available and no promotion piece was specified, show the dialog
-    // This can happen whether the move succeeded or failed (if it failed due to missing promotion piece)
-    if (result?.promotion_available && !promotionPiece) {
+    if (result.promotion_available && !promotionPiece) {
       setPromotionDialog({
         show: true,
         position: {
@@ -335,38 +269,6 @@ const Chessboard: React.FC<ChessboardProps> = ({
       return result;
     }
 
-    if (result?.success) {
-      // Get the updated board state
-      const boardState = await gameApi.getBoardState(gameId);
-      if (boardState?.success) {
-        // First update the pieces
-        setPieces(boardState.pieces);
-        if (boardState.pawn_directions) {
-          setPawnDirections(boardState.pawn_directions);
-        }
-        // Clear selected piece and legal moves before fetching new ones
-        setSelectedPiece(null);
-        setLegalMoves([]);
-
-        // Then fetch legal moves for the active player
-        const moves = await gameApi.getLegalMoves(gameId, activePlayerId);
-        setLegalMoves(moves);
-
-        // Update cooldown
-        const cooldownResult = await gameApi.getCooldown(
-          gameId,
-          activePlayerId
-        );
-        if (cooldownResult?.success) {
-          previousCooldownRef.current = cooldownResult.cooldown_remaining;
-          setCooldownRemaining(cooldownResult.cooldown_remaining);
-        }
-      }
-    } else if (result?.cooldown_remaining) {
-      previousCooldownRef.current = result.cooldown_remaining;
-      setCooldownRemaining(result.cooldown_remaining);
-    }
-
     return result;
   };
 
@@ -374,18 +276,16 @@ const Chessboard: React.FC<ChessboardProps> = ({
     if (promotionDialog) {
       await makeMove(promotionDialog.from, promotionDialog.to, piece);
       setPromotionDialog(null);
-      setSelectedPiece(null);
+      clearSelection();
     }
   };
 
   const renderBoard = () => {
     const squares = [];
     const bounds = getVisibleBounds();
-
-    // Calculate border bounds for active player
     const activePlayerPositions = pieces
-      .filter((p) => p.player_id === activePlayerId)
-      .map((p) => p.position);
+      .filter((piece) => piece.player_id === activePlayerId)
+      .map((piece) => piece.position);
 
     let borderBounds: {
       minRow: number;
@@ -396,39 +296,34 @@ const Chessboard: React.FC<ChessboardProps> = ({
 
     if (activePlayerPositions.length > 0) {
       borderBounds = {
-        minRow: Math.min(...activePlayerPositions.map((p) => p.row)),
-        maxRow: Math.max(...activePlayerPositions.map((p) => p.row)),
-        minCol: Math.min(...activePlayerPositions.map((p) => p.col)),
-        maxCol: Math.max(...activePlayerPositions.map((p) => p.col)),
+        minRow: Math.min(...activePlayerPositions.map((position) => position.row)),
+        maxRow: Math.max(...activePlayerPositions.map((position) => position.row)),
+        minCol: Math.min(...activePlayerPositions.map((position) => position.col)),
+        maxCol: Math.max(...activePlayerPositions.map((position) => position.col)),
       };
     }
 
     for (let row = bounds.minRow; row <= bounds.maxRow; row++) {
       for (let col = bounds.minCol; col <= bounds.maxCol; col++) {
         const piece = pieces.find(
-          (p) => p.position.row === row && p.position.col === col
+          (candidate) =>
+            candidate.position.row === row && candidate.position.col === col
         );
         const isSelected =
           selectedPiece?.position.row === row &&
           selectedPiece?.position.col === col;
         const isLegalMove =
           selectedPiece &&
-          legalMoves.some(
-            (move) =>
-              move.from.row === selectedPiece.position.row &&
-              move.from.col === selectedPiece.position.col &&
-              move.to.row === row &&
-              move.to.col === col
+          legalDestinations.some(
+            (destination) => destination.row === row && destination.col === col
           );
-        const hasLegalMoves =
-          piece &&
-          legalMoves.some(
-            (move) =>
-              move.from.row === piece.position.row &&
-              move.from.col === piece.position.col
-          );
+        const isClickable =
+          !!isLegalMove ||
+          (!!selectedBankPiece && !piece) ||
+          (!selectedPiece &&
+            !selectedBankPiece &&
+            piece?.player_id === activePlayerId);
 
-        // Check if square is outside the border
         const isOutsideBorder = borderBounds
           ? row < borderBounds.minRow ||
             row > borderBounds.maxRow ||
@@ -445,7 +340,7 @@ const Chessboard: React.FC<ChessboardProps> = ({
             piece={piece}
             isSelected={isSelected}
             isLegalMove={!!isLegalMove}
-            hasLegalMoves={!!hasLegalMoves}
+            isClickable={isClickable}
             lightSquareColor={lightSquareColor}
             darkSquareColor={darkSquareColor}
             getPlayerColor={getPlayerColor}
@@ -468,8 +363,8 @@ const Chessboard: React.FC<ChessboardProps> = ({
           key={activePlayerId}
           playerId={activePlayerId}
           positions={pieces
-            .filter((p) => p.player_id === activePlayerId)
-            .map((p) => p.position)}
+            .filter((piece) => piece.player_id === activePlayerId)
+            .map((piece) => piece.position)}
           squareSize={squareSize}
           getPlayerColor={getPlayerColor}
         />
@@ -478,7 +373,7 @@ const Chessboard: React.FC<ChessboardProps> = ({
   };
 
   const cooldownProgress =
-    cooldownRemaining > 0 ? (cooldownRemaining / 3.0) * 100 : 0;
+    cooldownRemaining > 0 ? (cooldownRemaining / 10) * 100 : 0;
 
   return (
     <div className="chessboard" ref={wrapperRef}>
@@ -521,13 +416,12 @@ const Chessboard: React.FC<ChessboardProps> = ({
       <TransformWrapper
         ref={transformComponentRef}
         initialScale={1}
-        minScale={0.5} // Maximum zoom out: 2x (1/2 = 0.5)
-        maxScale={2} // Maximum zoom in: 2x
+        minScale={0.5}
+        maxScale={2}
         centerOnInit={false}
         limitToBounds={false}
         doubleClick={{ disabled: true }}
         onInit={(ref) => {
-          // Ensure transform ref is set
           if (ref) {
             transformComponentRef.current = ref;
           }
